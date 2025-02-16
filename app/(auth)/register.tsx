@@ -11,55 +11,59 @@ import Button from '@/components/Button'
 import { useRouter } from 'expo-router'
 import { generateUsername } from '@/utils/usernameGenerator'
 import { api_register } from '@/api/authService'
+import { useAuth } from '@/contexts/authContext'
 
 const Register = () => {
 
   const emailRef = useRef("");
-  const fullNameRef= useRef("");
+  const fullNameRef = useRef("");
   const user_nameRef = useRef(generateUsername());
   const user_phoneRef = useRef("");
   const passWordRef = useRef("");
   const [isLoading, setIsLoading] = useState(false)
 
   const router = useRouter();
+  const { register: registerUser } = useAuth();
 
   const validatePassword = (password: string): boolean => {
     const minLength = 8;
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasNumber = /\d/.test(password);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    // const hasUpperCase = /[A-Z]/.test(password);
+    // const hasLowerCase = /[a-z]/.test(password);
+    // const hasNumber = /\d/.test(password);
+    // const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
-    return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
+    // return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
+
+    return password.length >= minLength;
   };
 
 
   const handleSubmit = async () => {
-    if (!fullNameRef.current || !user_phoneRef.current || !user_nameRef.current || !emailRef.current || !passWordRef.current) {
-      Alert.alert("Registeration Failed", "Please fill all the fields");
-      return;
-    }
 
-    const user_fullName= fullNameRef.current;
+    const user_fullName = fullNameRef.current;
     const user_name = user_nameRef.current;
     const user_phone = user_phoneRef.current;
     const user_email = emailRef.current;
     const user_password = passWordRef.current;
 
+    if (!user_fullName || !user_phone || !user_name || !user_email || !user_password) {
+      Alert.alert("Registeration Failed", "Please fill all the fields");
+      return;
+    }
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(user_email)) {
       Alert.alert("Registeration Failed", "Please enter a valid email address");
       return;
     }
-        
+
 
     //Phone validation
     const phoneRegex = /^(?:\+256|0)?7\d{8}$/; // Validates Ugandan phone numbers
     if (!phoneRegex.test(user_phone)) {
       Alert.alert("Registration Failed", "Please enter a valid Ugandan phone number");
       return;
-    } 
+    }
 
     //Validate Password
     if (!validatePassword(user_password)) {
@@ -68,31 +72,22 @@ const Register = () => {
     }
 
 
-    // Simulate password authentication
+
     setIsLoading(true);
     try {
-            const response = await api_register(user_name, user_fullName, user_phone, user_email, user_password);
-            if (!response.error) {
-              console.log("Registration successful");
-              // Navigate to the next screen or perform other actions
-            } else {
-              Alert.alert("Registration Failed", response.message);
-            }
+      const res = await registerUser(user_email, user_password, user_phone, user_fullName, user_name);
+
+      if (!res.success) {
+        Alert.alert("Registration Failed", res.msg);
+      }
     } catch (error) {
-      Alert.alert("Registeration Failed", "An error occurred. Please try again.");
+      Alert.alert("Registration Failed", "An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Fake authentication service for demonstration purposes
-  const fakeAuthService = async (email: string, password: string) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(email === "test@example.com" && password === "password123");
-      }, 1000);
-    });
-  };
+
 
   return (
     <ScreenWrapper>
@@ -158,8 +153,8 @@ const Register = () => {
         <View style={styles.footer}>
 
 
-          <Typo size={15}>Have an account already?</Typo>
-          <Pressable onPress={() => router.push("/(auth)/login")}><Typo size={15} fontWeight={"700"} color={colors.primary} style={{ textDecorationLine: "underline" }}>Sign in</Typo></Pressable>
+          <Typo size={15}>Already have an account?</Typo>
+          <Pressable onPress={() => router.navigate("/(auth)/login")}><Typo size={15} fontWeight={"700"} color={colors.primary} style={{ textDecorationLine: "underline" }}>Sign in</Typo></Pressable>
         </View>
 
       </View>

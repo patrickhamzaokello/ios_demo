@@ -34,7 +34,7 @@ export interface CustomButtonProps extends TouchableOpacityProps {
      children: React.ReactNode;
 }
 
-export type TypoProps ={
+export type TypoProps = {
      size?: number,
      color?: string,
      fontWeight?: TextStyle["fontWeight"];
@@ -48,6 +48,38 @@ export type accountOptionType = {
      icon: React.ReactNode;
      bgColor: string;
      routeName?: any;
+}
+
+export type UserType = {
+     uid?: string;
+     email?: string | null;
+     name: string | null;
+     image?: any;
+} | null;
+
+
+export type AuthContextType = {
+     user: UserType;
+     setUser: Function;
+     login: (
+          email: string,
+          password: string
+     ) => Promise<{ success: boolean; msg?: string }>;
+     register: (
+          email: string,
+          password: string,
+          phone: string,
+          name: string,
+          user_name: string
+     ) => Promise<{ success: boolean; msg?: string }>;
+     updateUserData: (userId: string) => Promise<void>;
+}
+
+
+export type ResponseType = {
+     success: boolean;
+     data?: any;
+     msg?: string;
 }
 
 
@@ -64,4 +96,4 @@ export interface LoginResponse {
      mwRole: string;
      error: boolean;
      message: string;
- }
+}

@@ -1,15 +1,17 @@
 import { StyleSheet, Text, View } from "react-native"
 import React from "react"
 import { Stack } from "expo-router"
+import { AuthProvider } from "@/contexts/authContext"
 
-const _layout = () =>{
-    return (
-      <Stack screenOptions={{headerShown: false}}>
+const StackLayout = () => {
+  return <Stack screenOptions={{ headerShown: false }}></Stack>
+};
 
-      </Stack>
-    )
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <StackLayout/>
+    </AuthProvider>
+  )
 }
-
-export default _layout;
-
 const sytles = StyleSheet.create({})

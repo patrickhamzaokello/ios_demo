@@ -10,6 +10,7 @@ import * as Icons from 'phosphor-react-native'
 import Button from '@/components/Button'
 import { useRouter } from 'expo-router'
 import { api_login } from '@/api/authService';
+import { useAuth } from '@/contexts/authContext'
 
 const Login = () => {
 
@@ -19,15 +20,17 @@ const Login = () => {
 
   const router = useRouter();
 
+  const { login: loginUser } = useAuth();
 
   const handleSubmit = async () => {
-    if (!emailRef.current || !passWordRef.current) {
-      Alert.alert("Login Failed", "Please fill all the fields");
-      return;
-    }
 
     const email = emailRef.current;
     const password = passWordRef.current;
+
+    if (!email || !password) {
+      Alert.alert("Login Failed", "Please fill all the fields");
+      return;
+    }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,25 +39,26 @@ const Login = () => {
       return;
     }
 
-    // Simulate password authentication
+
+
     setIsLoading(true);
     try {
-      // Replace this with your actual authentication logic
-      const response = await api_login(email, password);
-      if (!response.error) {
-        console.log("Login successful");
-        // Navigate to the next screen or perform other actions
-      } else {
-        Alert.alert("Login Failed", response.message);
+      const res = await loginUser(email, password);
+
+      if (!res.success) {
+        Alert.alert("Login Failed", res.msg);
       }
     } catch (error) {
+      console.log(error)
       Alert.alert("Login Failed", "An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
+
+
   };
 
- 
+
 
   return (
     <ScreenWrapper>
@@ -74,7 +78,7 @@ const Login = () => {
           <Input
             placeholder='Enter your email'
             inputMode='email'
-              enterKeyHint='done'
+            enterKeyHint='done'
             onChangeText={(value) => (emailRef.current = value)}
             icon={<Icons.At size={verticalScale(26)} color={colors.neutral300} weight='fill' />}
 
@@ -106,7 +110,7 @@ const Login = () => {
 
 
           <Typo size={15}>Don't have an account?</Typo>
-          <Pressable onPress={() => router.push("/(auth)/register")}><Typo size={15} fontWeight={"700"} color={colors.primary} style={{ textDecorationLine: "underline" }}>Sign up now</Typo></Pressable>
+          <Pressable onPress={() => router.navigate("/(auth)/register")}><Typo size={15} fontWeight={"700"} color={colors.primary} style={{ textDecorationLine: "underline" }}>Sign up now</Typo></Pressable>
         </View>
 
       </View>
