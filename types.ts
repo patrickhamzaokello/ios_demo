@@ -52,8 +52,10 @@ export type accountOptionType = {
 
 export type UserType = {
      uid?: string;
+     phone_number?: string | null;
      email?: string | null;
-     name: string | null;
+     full_name?: string | null;
+     user_name?: string | null;
      image?: any;
 } | null;
 

@@ -13,13 +13,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, (firebaseUser) => {
+            // console.log("firebaseuser", firebaseUser)
             if (firebaseUser) {
                 setUser({
                     uid: firebaseUser?.uid,
                     email: firebaseUser?.email,
-                    name: firebaseUser?.displayName
+                    full_name: firebaseUser?.displayName
                 });
 
+                updateUserData(firebaseUser.uid)
                 router.replace("/(tabs)");
             } else {
                 setUser(null);
@@ -78,8 +80,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const data = docSnap.data();
                 const userData: UserType = {
                     uid: data?.uid,
-                    email: data.email || null,
-                    name: data.name || null,
+                    email: data.user_email || null,
+                    full_name: data.user_fullname || null,
+                    phone_number: data.phone_number || null,
+                    user_name: data.username || null,
                     image: data.image || null
                 };
 
