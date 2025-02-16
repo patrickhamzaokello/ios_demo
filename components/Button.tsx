@@ -1,4 +1,4 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Image, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from "react-native"
 import React, { useEffect } from "react"
 import { CustomButtonProps } from "@/types";
 import { colors, radius } from "@/constants/theme";
@@ -9,18 +9,15 @@ const Button = ({
     style, onPress, loading = false, children
 }: CustomButtonProps) => {
 
-    if (loading) {
-        return (
-            <View style={[styles.button, style, { backgroundColor: 'transparent' }]}>
-                <Loading />
-            </View>
-        )
-    }
 
 
     return (
-        <TouchableOpacity onPress={onPress} style={[styles.button, style]}>
-            {children}
+        <TouchableOpacity
+            onPress={!loading ? onPress : undefined}
+            style={[styles.button, style, loading && styles.disabledButton]}
+            disabled={loading}
+        >
+            {loading ? <ActivityIndicator size="small" color={colors.white} /> : children}
         </TouchableOpacity>
     )
 }
@@ -36,5 +33,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center'
 
+    },
+    disabledButton: {
+        backgroundColor: colors.primaryDark,
     }
 })

@@ -15,6 +15,18 @@ export type ModelWrapperProps = {
      bg?: string;
 }
 
+export type BackButtonProps = {
+     style?: ViewStyle;
+     iconSize?: number
+}
+
+export interface InputProps extends TextInputProps {
+     icon?: React.ReactNode;
+     containerStyle?: ViewStyle;
+     inputStyle?: TextStyle;
+     inputRef?: React.RefObject<TextInput>;
+}
+
 export interface CustomButtonProps extends TouchableOpacityProps {
      style?: ViewStyle,
      onPress?: () => void;
@@ -37,3 +49,19 @@ export type accountOptionType = {
      bgColor: string;
      routeName?: any;
 }
+
+
+export interface LoginResponse {
+     id: string;
+     username: string;
+     full_name: string;
+     email: string;
+     phone: string;
+     password: string;
+     signUpDate: string;
+     profilePic: string;
+     status: string;
+     mwRole: string;
+     error: boolean;
+     message: string;
+ }
