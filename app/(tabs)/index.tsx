@@ -1,32 +1,111 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
-import { signOut } from 'firebase/auth'
-import { auth } from '@/config/firebase'
-import Button from '@/components/Button'
-import Typo from '@/components/Typo'
-import { colors } from '@/constants/theme'
-import { useAuth } from '@/contexts/authContext'
+import { ScrollView, StyleSheet, View, Text } from 'react-native';
+import { useCallback } from 'react';
+import { RefreshControl } from 'react-native-gesture-handler';
+import { HeroSection } from '../../components/home/HeroSection';
+import { NewReleaseSection } from '../../components/home/NewReleaseSection';
+import { FeaturedArtistsSection } from '../../components/home/FeaturedArtistsSection';
+import { TrendingSection } from '../../components/home/TrendingSection';
+import { LoadingState } from '../../components/home/LoadingState';
+import { useHomeData } from '../../hooks/useHomeData';
+import { SliderSection } from '../../components/home/SliderSection';
 import ScreenWrapper from '@/components/ScreenWrapper'
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { CollectionSection } from '@/components/home/CollectionSection';
+import { PlaylistSection } from '@/components/home/PlaylistSection';
+import { MoreLikeArtistSection } from '@/components/home/MoreLikeArtist';
+import { DJCollectionSection } from '@/components/home/DJCollectionSection';
 
-const Home = () => {
 
-    const {user} = useAuth();
-    console.log(user)
-    const handlelogout = async () => {
-        await signOut(auth)
+export default function HomeScreen() {
+    const { data, loading, error, refetch } = useHomeData();
+
+    const renderSection = useCallback((section: any, index: number) => {
+        switch (section.type) {
+            case 'hero':
+                return <HeroSection key={index} data={section} />;
+            case 'newRelease':
+                return <NewReleaseSection key={index} data={section} />;
+            case 'slider':
+                return <SliderSection key={index} data={section} />;
+            case 'artist':
+                return <FeaturedArtistsSection key={index} data={section} />;
+            case 'artist_more_like':
+                return <MoreLikeArtistSection key={index} data={section} />;
+            case 'trend':
+                return <TrendingSection key={index} data={section} />;
+            case 'albums':
+                return <CollectionSection key={index} data={section} />;
+            case 'djs':
+                return <DJCollectionSection key={index} data={section} />;
+            case 'playlist':
+                return <PlaylistSection key={index} data={section} />;
+            default:
+                return null;
+        }
+    }, []);
+
+    if (loading) {
+        return <LoadingState />;
     }
-    return (
-        <ScreenWrapper>
-            <Typo>Home</Typo>
 
-            <Button onPress={handlelogout}>
-                <Typo color={colors.black}>Logout</Typo>
-            </Button>
-        </ScreenWrapper>
-    )
+    if (error) {
+        return (
+            <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>
+                    {error.message}
+                </Text>
+                <Text
+                    style={styles.retryText}
+                    onPress={refetch}>
+                    Tap to retry
+                </Text>
+            </View>
+        );
+    }
+
+    return (
+        <GestureHandlerRootView>
+
+            <ScrollView
+                style={styles.container}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={loading}
+                        onRefresh={refetch}
+                        tintColor="#FFFFFF"
+                    />
+                }>
+                <ScreenWrapper>
+
+                    {data?.featured?.map(renderSection)}
+                </ScreenWrapper>
+
+            </ScrollView>
+        </GestureHandlerRootView>
+
+    );
 }
 
-export default Home
-
-const styles = StyleSheet.create({})
-
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#000000',
+    },
+    errorContainer: {
+        flex: 1,
+        backgroundColor: '#000000',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+    },
+    errorText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    retryText: {
+        color: '#63B3ED',
+        fontSize: 14,
+    },
+});

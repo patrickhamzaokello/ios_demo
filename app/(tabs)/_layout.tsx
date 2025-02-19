@@ -1,19 +1,22 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
-import { Tabs } from 'expo-router'
-import CustomTabs from '@/components/CustomTabs'
+import { StyleSheet } from 'react-native';
+import { Tabs } from 'expo-router';
+import CustomTabs from '@/components/CustomTabs';
+import { PlayerProvider } from '@/components/player/PlayerProvider';
 
-const _layout = () => {
+export default function Layout() {
   return (
-    <Tabs tabBar={CustomTabs} screenOptions={{headerShown: false}}>
-      <Tabs.Screen name="index"/>
-      <Tabs.Screen name="search"/>
-      <Tabs.Screen name="wallet"/>
-      <Tabs.Screen name="profile"/>
-    </Tabs>
-  )
+    <PlayerProvider>
+      <Tabs 
+        tabBar={props => <CustomTabs {...props} />} 
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="search" />
+        <Tabs.Screen name="wallet" />
+        <Tabs.Screen name="profile" />
+      </Tabs>
+    </PlayerProvider>
+  );
 }
-
-export default _layout
-
-const styles = StyleSheet.create({})
