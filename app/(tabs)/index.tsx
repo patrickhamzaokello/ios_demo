@@ -1,7 +1,8 @@
 import { ScrollView, StyleSheet, View, Text } from 'react-native';
 import { useCallback } from 'react';
 import { RefreshControl } from 'react-native-gesture-handler';
-import { HeroSection } from '../../components/home/HeroSection';
+// import HeroSection  from '../../components/home/HeroSection';
+import { HeroSection } from '@/components/home/HeroSection';
 import { NewReleaseSection } from '../../components/home/NewReleaseSection';
 import { FeaturedArtistsSection } from '../../components/home/FeaturedArtistsSection';
 import { TrendingSection } from '../../components/home/TrendingSection';
@@ -66,21 +67,26 @@ export default function HomeScreen() {
     return (
         <GestureHandlerRootView>
 
-            <ScrollView
-                style={styles.container}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={loading}
-                        onRefresh={refetch}
-                        tintColor="#FFFFFF"
-                    />
-                }>
-                <ScreenWrapper>
+
+            <ScreenWrapper>
+
+                <ScrollView
+                    style={styles.container}
+                    showsHorizontalScrollIndicator={false}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={loading}
+                            onRefresh={refetch}
+                            tintColor="#FFFFFF"
+                        />
+                    }>
 
                     {data?.featured?.map(renderSection)}
-                </ScreenWrapper>
+                </ScrollView>
 
-            </ScrollView>
+            </ScreenWrapper>
+
         </GestureHandlerRootView>
 
     );
@@ -89,11 +95,9 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000000',
     },
     errorContainer: {
         flex: 1,
-        backgroundColor: '#000000',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 16,

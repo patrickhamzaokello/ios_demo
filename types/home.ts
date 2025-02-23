@@ -3,6 +3,7 @@ export interface Track {
   title: string;
   artist: string;
   artworkPath: string;
+  path: string;
 }
 
 export interface Artist {
