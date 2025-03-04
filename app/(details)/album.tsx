@@ -2,26 +2,22 @@ import { StyleSheet, Text, View,ScrollView } from 'react-native'
 import React from 'react'
 import { useLocalSearchParams } from 'expo-router';
 import ScreenWrapper from '@/components/ScreenWrapper';
-import Typo from '@/components/Typo';
-import PlaylistDetails from '@/components/Playlist';
 
-import { usePlaylistDetailsData } from '@/hooks/playlistDetailsData';
+import { useAlbumDetailsData } from '@/hooks/albumDetailsData';
+import AlbumDetails from '@/components/Album';
 
-const playlist = () => {
+const album = () => {
     const { id, playlistName } = useLocalSearchParams<{ id: string; playlistName: string; }>();
-    const { data, loading, error, refetch } = usePlaylistDetailsData(id);
-
+   const { data, loading, error, refetch } = useAlbumDetailsData(id);
   return (
     <ScreenWrapper>
       <ScrollView>
-          {/* <Playlist playlistName={playlistName} id={id} /> */}
-          <PlaylistDetails  playlistResponse={data} />
-
+          <AlbumDetails playlistResponse={data}/>
       </ScrollView>
     </ScreenWrapper>
   )
 }
 
-export default playlist
+export default album
 
 const styles = StyleSheet.create({})

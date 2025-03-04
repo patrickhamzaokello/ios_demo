@@ -1,5 +1,5 @@
 import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 import type { Section, Release } from '../../types/home';
 
@@ -11,7 +11,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function CollectionSection({ data }: Props) {
   if (!data?.featuredAlbums) return null;
-
+const router = useRouter();
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>{data.heading}</Text>
@@ -23,6 +23,7 @@ export function CollectionSection({ data }: Props) {
             <AnimatedPressable 
             key={item.id}
               style={styles.releaseItem}
+              onPress={() => router.push({ pathname: "/(details)/album", params: { id: item.id, playlistName: item.name } })}
               entering={FadeInRight.delay(index * 100)}>
               <Image 
                 source={{ uri: item.artworkPath }}

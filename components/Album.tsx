@@ -5,23 +5,23 @@ import ScreenWrapper from '@/components/ScreenWrapper';
 import Typo from '@/components/Typo';
 import { MwonyaPlaylistDetailsResponse, Playlist, Track } from '@/types/playlist';
 
-interface PlaylistDetailsProps {
-  playlistData: Playlist;
+interface AlbumDetailsProps {
+  albumData: Playlist;
 }
 
-const PlaylistHeader: React.FC<PlaylistDetailsProps> = ({ playlistData }) => {
+const PlaylistHeader: React.FC<AlbumDetailsProps> = ({ albumData }) => {
   return (
     <View style={styles.header}>
       <Image
-        source={{ uri: playlistData.cover }}
+        source={{ uri: albumData.cover }}
         style={styles.coverArt}
       />
       <View style={styles.headerInfo}>
-        <Typo style={styles.playlistName}>{playlistData.name}</Typo>
+        <Typo style={styles.playlistName}>{albumData.name}</Typo>
         <Typo style={styles.albumDetails}>
-          {playlistData.owner} • {playlistData.total} songs
+          {albumData.owner} • {albumData.total} songs
         </Typo>
-        <Text style={styles.description}>{playlistData.description}</Text>
+        <Text style={styles.description}>{albumData.description}</Text>
       </View>
     </View>
   );
@@ -62,24 +62,24 @@ const TrackItem: React.FC<{ track: Track; index: number }> = ({ track, index }) 
   );
 };
 
-const PlaylistDetails: React.FC<{ playlistResponse: MwonyaPlaylistDetailsResponse | null }> = ({ playlistResponse }) => {
+const AlbumDetails: React.FC<{ playlistResponse: MwonyaPlaylistDetailsResponse | null }> = ({ playlistResponse }) => {
   if (!playlistResponse || !playlistResponse.Playlists || playlistResponse.Playlists.length < 2) {
     return (
       <ScreenWrapper>
-        <Text style={styles.errorText}>No PlaylistDetails data available.</Text>
+        <Text style={styles.errorText}>No album data available.</Text>
       </ScreenWrapper>
     );
   }
 
-  // Take the first playlist from the response for PlaylistDetails details
-  const playlistData = playlistResponse.Playlists[0];
+  // Take the first playlist from the response for album details
+  const albumData = playlistResponse.Playlists[0];
   // Take the tracks from the second element in the Playlists array
   const tracks = playlistResponse.Playlists[1].Tracks;
 
   return (
     <ScreenWrapper>
       <ScrollView style={styles.container}>
-        <PlaylistHeader playlistData={playlistData} />
+        <PlaylistHeader albumData={albumData} />
         <PlaylistControls />
 
         <View style={styles.trackList}>
@@ -101,7 +101,7 @@ const PlaylistDetails: React.FC<{ playlistResponse: MwonyaPlaylistDetailsRespons
   );
 };
 
-export default PlaylistDetails;
+export default AlbumDetails;
 
 const styles = StyleSheet.create({
   container: {

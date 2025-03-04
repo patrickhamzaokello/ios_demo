@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { useFonts, Roboto_700Bold, Roboto_400Regular } from '@expo-google-fonts/roboto';
+import SubtleGradientBackground from '../subtleGradient';
 
 interface Props {
   data: {
@@ -23,13 +23,7 @@ interface Props {
 const { width } = Dimensions.get('window');
 
 export function HeroSection({ data, onPress }: Props) {
-  const [fontsLoaded] = useFonts({
-    Roboto_700Bold,
-    Roboto_400Regular,
-  });
-
-  if (!data || !fontsLoaded) return null;
-
+  
   return (
     <TouchableOpacity 
       activeOpacity={0.9} 
@@ -37,31 +31,9 @@ export function HeroSection({ data, onPress }: Props) {
       style={styles.container}
     >
       {/* Background Spotted Gradients */}
-      <View style={styles.gradientContainer}>
-        {/* Top left spot */}
-        <View style={[styles.spotContainer, { top: 10, left: 20 }]}>
-          <LinearGradient
-            colors={['rgba(29, 149, 75, 0.15)', 'transparent']}
-            style={styles.gradientSpot}
-            start={{ x: 0.5, y: 0.5 }}
-            end={{ x: 1, y: 1 }}
-          />
-          <BlurView intensity={60} tint="default" style={styles.blurOverlay} />
-        </View>
-        
-        {/* Bottom right spot */}
-        <View style={[styles.spotContainer, { bottom: -20, right: 40 }]}>
-          <LinearGradient
-            colors={['rgba(37, 99, 235, 0.15)', 'transparent']}
-            style={styles.gradientSpot}
-            start={{ x: 0.5, y: 0.5 }}
-            end={{ x: 1, y: 1 }}
-          />
-          <BlurView intensity={60} tint="default" style={styles.blurOverlay} />
-        </View>
-        
-     
-      </View>
+      
+
+      <SubtleGradientBackground />
       
       <View style={styles.content}>
         <Text style={styles.heading} numberOfLines={2}>
@@ -81,7 +53,7 @@ const styles = StyleSheet.create({
   container: {
     width: width,
     position: 'relative',
-    paddingVertical: 20,
+    paddingVertical: 10,
   },
   gradientContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -111,7 +83,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 8,
     letterSpacing: 0.3,
+    fontWeight: '700',
   },
+
   subheading: {
     fontFamily: 'Roboto_400Regular',
     fontSize: 16,

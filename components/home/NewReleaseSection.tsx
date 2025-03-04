@@ -1,5 +1,5 @@
 import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 import type { Section, Release } from '../../types/home';
 
@@ -11,7 +11,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function NewReleaseSection({ data }: Props) {
   if (!data?.HomeRelease) return null;
-
+  const router = useRouter();
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>{data.heading}</Text>
@@ -20,9 +20,10 @@ export function NewReleaseSection({ data }: Props) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
         {data.HomeRelease.map((item, index) => (
-          <Link key={item.id} href={`/album/${item.id}`} asChild>
             <AnimatedPressable 
+             key={item.id} 
               style={styles.releaseItem}
+              onPress={() => router.push({ pathname: "/(details)/album", params: { id: item.id, playlistName: item.name } })}
               entering={FadeInRight.delay(index * 100)}>
               <Image 
                 source={{ uri: item.artworkPath }}
@@ -32,7 +33,6 @@ export function NewReleaseSection({ data }: Props) {
               <Text style={styles.artist}>{item.artist}</Text>
               <Text style={styles.tag}>{item.tag}</Text>
             </AnimatedPressable>
-          </Link>
         ))}
       </Animated.ScrollView>
     </View>
