@@ -4,12 +4,13 @@ import { Play, Heart, MoreVertical, Clock } from 'lucide-react-native';
 import ScreenWrapper from '@/components/ScreenWrapper';
 import Typo from '@/components/Typo';
 import { MwonyaPlaylistDetailsResponse, Playlist, Track } from '@/types/playlist';
+import { FlatList } from 'react-native';
 
 interface AlbumDetailsProps {
   albumData: Playlist;
 }
 
-const PlaylistHeader: React.FC<AlbumDetailsProps> = ({ albumData }) => {
+const AlbumHeader: React.FC<AlbumDetailsProps> = ({ albumData }) => {
   return (
     <View style={styles.header}>
       <Image
@@ -27,7 +28,7 @@ const PlaylistHeader: React.FC<AlbumDetailsProps> = ({ albumData }) => {
   );
 };
 
-const PlaylistControls = () => {
+const AlbumControls = () => {
   return (
     <View style={styles.controls}>
       <Pressable style={styles.playButton}>
@@ -47,7 +48,7 @@ const TrackItem: React.FC<{ track: Track; index: number }> = ({ track, index }) 
     <Pressable style={styles.trackItem}>
       <Text style={styles.trackNumber}>{index + 1}</Text>
       <Image
-        source={{ uri: track.artworkPath }}
+        source={{ uri: track.artworkPath } }
         style={styles.trackArtwork}
       />
       <View style={styles.trackInfo}>
@@ -78,25 +79,22 @@ const AlbumDetails: React.FC<{ playlistResponse: MwonyaPlaylistDetailsResponse |
 
   return (
     <ScreenWrapper>
-      <ScrollView style={styles.container}>
-        <PlaylistHeader albumData={albumData} />
-        <PlaylistControls />
+      <AlbumHeader albumData={albumData} />
+      <AlbumControls />
 
-        <View style={styles.trackList}>
-          <View style={styles.trackListHeader}>
-            <Text style={styles.trackListTitle}>Songs</Text>
-            <Clock size={16} color="#666" />
-          </View>
-
-          {tracks?.map((track, index) => (
-            <TrackItem
-              key={track.id}
-              track={track}
-              index={index}
-            />
-          ))}
+      <View style={styles.trackList}>
+        <View style={styles.trackListHeader}>
+          <Text style={styles.trackListTitle}>Songs</Text>
+          <Clock size={16} color="#666" />
         </View>
-      </ScrollView>
+
+        <FlatList
+          data={tracks}
+          renderItem={({ item, index }) => <TrackItem track={item} index={index} />}
+          keyExtractor={(item) => item.id} 
+          showsVerticalScrollIndicator={false}
+          />
+      </View>
     </ScreenWrapper>
   );
 };
@@ -162,6 +160,7 @@ const styles = StyleSheet.create({
   },
   trackList: {
     paddingHorizontal: 20,
+    marginBottom: 30
   },
   trackListHeader: {
     flexDirection: 'row',
@@ -178,16 +177,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    gap: 12,
+    gap: 0,
   },
   trackNumber: {
     width: 30,
     color: '#666',
   },
   trackArtwork: {
-    width: 45,
-    height: 45,
-    borderRadius: 4,
+    width: 50,
+    height: 50,
+    borderRadius: 5,
+    aspectRatio: 1,
+    marginRight: 10,
   },
   trackInfo: {
     flex: 1,
@@ -195,11 +196,10 @@ const styles = StyleSheet.create({
   trackTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#fff',
+    color: 'white',
   },
   trackArtist: {
-    fontSize: 14,
-    color: '#666',
+    color: 'grey',
   },
   trackDuration: {
     color: '#666',
