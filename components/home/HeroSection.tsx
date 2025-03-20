@@ -1,42 +1,34 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import SubtleGradientBackground from '../subtleGradient';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 
 interface Props {
   data: {
     heading: string;
     subheading?: string;
-    imageUrl: string;
+    profileImageUrl?: string;
+    notificationsCount?: number;
   };
-  onPress?: () => void;
+  onProfilePress?: () => void;
+  onNotificationsPress?: () => void;
 }
 
 const { width } = Dimensions.get('window');
 
-export function HeroSection({ data, onPress }: Props) {
-  
+export function HeroSection({ data, onProfilePress, onNotificationsPress }: Props) {
   return (
-    <TouchableOpacity 
-      activeOpacity={0.9} 
-      onPress={onPress} 
-      style={styles.container}
-    >
-      {/* Background Spotted Gradients */}
-      
+    <View style={styles.container}>
+      {/* Profile Picture */}
+      <TouchableOpacity onPress={onProfilePress} style={styles.profileContainer}>
+        <Image
+          source={{ uri: data.profileImageUrl }}
+          style={styles.profileImage}
+        />
+      </TouchableOpacity>
 
-      <SubtleGradientBackground />
-      
-      <View style={styles.content}>
-        <Text style={styles.heading} numberOfLines={2}>
+      {/* Heading and Subheading */}
+      <View style={styles.textContainer}>
+        <Text style={styles.heading} numberOfLines={1}>
           {data.heading}
         </Text>
         {data.subheading && (
@@ -45,51 +37,72 @@ export function HeroSection({ data, onPress }: Props) {
           </Text>
         )}
       </View>
-    </TouchableOpacity>
+
+      {/* Notifications Icon */}
+      <TouchableOpacity onPress={onNotificationsPress} style={styles.notificationsContainer}>
+        <Feather name="bell" size={24} color="white" />
+        {data.notificationsCount && data.notificationsCount > 0 && (
+          <View style={styles.notificationsBadge}>
+            <Text style={styles.notificationsCount}>{data.notificationsCount}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     width: width,
-    position: 'relative',
-    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1d1d1d',
   },
-  gradientContainer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  spotContainer: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
+  profileContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     overflow: 'hidden',
+    backgroundColor: '#666'
   },
-  gradientSpot: {
+  profileImage: {
     width: '100%',
     height: '100%',
-    transform: [{ scale: 1.2 }],
   },
-  blurOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 32,
+  textContainer: {
+    flex: 1,
+    marginHorizontal: 16,
   },
   heading: {
-    fontFamily: 'Roboto_700Bold',
-    fontSize: 32,
-    color: '#fff',
-    marginBottom: 8,
-    letterSpacing: 0.3,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: 'white',
   },
-
   subheading: {
-    fontFamily: 'Roboto_400Regular',
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-    letterSpacing: 0.2,
+    fontSize: 14,
+    color: 'gray',
+  },
+  notificationsContainer: {
+    position: 'relative',
+  },
+  notificationsBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: 'red',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationsCount: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });

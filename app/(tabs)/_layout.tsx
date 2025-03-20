@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import CustomTabs from '@/components/CustomTabs';
-import { PlayerProvider } from '@/components/player/PlayerProvider';
+import { PlayerProvider } from '@/providers/PlayerProvider';
 
 export default function Layout() {
   return (

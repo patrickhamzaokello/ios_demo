@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
-import { PlayerScreen } from './PlayerScreen'; // Import the PlayerScreen component we created earlier
+import React, { createContext, PropsWithChildren, useContext, useState } from 'react';
+import { PlayerScreen } from '../components/player/PlayerScreen'; // Import the PlayerScreen component we created earlier
 import { View, StyleSheet } from 'react-native';
 
 interface PlayerContextType {
@@ -12,26 +12,26 @@ interface PlayerContextType {
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 
-export function PlayerProvider({ children }: { children: React.ReactNode }) {
+export function PlayerProvider({ children }: PropsWithChildren) {
   const [isPlayerVisible, setIsPlayerVisible] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(null);
 
   const showPlayer = () => setIsPlayerVisible(true);
   const hidePlayer = () => setIsPlayerVisible(false);
 
+
   return (
-    <PlayerContext.Provider 
-      value={{ 
-        showPlayer, 
-        hidePlayer, 
-        isPlayerVisible, 
-        currentTrack, 
-        setCurrentTrack 
+    <PlayerContext.Provider
+      value={{
+        showPlayer,
+        hidePlayer,
+        isPlayerVisible,
+        currentTrack,
+        setCurrentTrack
       }}
     >
       <View style={styles.container}>
         {children}
-        {/* Player is always rendered but visibility is controlled by state */}
         <PlayerScreen />
       </View>
     </PlayerContext.Provider>

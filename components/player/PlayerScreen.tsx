@@ -16,26 +16,23 @@ import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/constants/theme';
+import { usePlayer } from '@/providers/PlayerProvider';
+import { Audio } from 'expo-av';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
 const MINI_PLAYER_HEIGHT = 64;
 const GESTURE_THRESHOLD = SCREEN_HEIGHT / 3;
 
-const formatTime = (seconds) => {
+const formatTime = (seconds: number) => {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-export const PlayerScreen = ({
-  currentTrack = {
-    title: 'Anti-Hero',
-    artist: 'Taylor Swift',
-    album: 'Midnights',
-    artwork: 'https://via.placeholder.com/400',
-    duration: 225, // 3:45 in seconds
-  }
-}) => {
+export const PlayerScreen = () => {
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const { currentTrack } = usePlayer();
   const insets = useSafeAreaInsets();
   const [playerState, setPlayerState] = useState({
     isPlaying: true,
@@ -136,6 +133,45 @@ export const PlayerScreen = ({
     setPlayerState(prev => ({ ...prev, isShuffle: !prev.isShuffle }));
   };
 
+  // Effect to handle sound playback
+  useEffect(() => {
+    if (!currentTrack) return;
+
+    const playCurrentTrack = async () => {
+      if (sound) {
+        await sound.unloadAsync();
+      }
+
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: currentTrack.path },
+      );
+
+      setSound(newSound);
+      await newSound.playAsync();
+    };
+
+    playCurrentTrack();
+
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, [currentTrack]);
+
+  useEffect(() => {
+    return sound ? () => {
+      console.log('unloading sound');
+      sound.unloadAsync();
+    }
+      : undefined;
+  }, [sound]);
+  
+
+  if (!currentTrack) {
+    return null;
+  }
+
   // Mini Player Component
   const MiniPlayer = () => (
     <Animated.View style={[styles.miniPlayer, { opacity: miniPlayerOpacity }]}>
@@ -146,7 +182,7 @@ export const PlayerScreen = ({
           activeOpacity={0.7}
         >
           <Animated.Image
-            source={{ uri: currentTrack.artwork }}
+            source={{ uri: currentTrack.artworkPath }}
             style={[styles.miniPlayerArtwork]}
           />
           <View style={styles.miniPlayerInfo}>
@@ -174,7 +210,7 @@ export const PlayerScreen = ({
             style={styles.miniPlayerNext}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="play-skip-forward" size={24} color="#FFF" />
+            <Ionicons name="heart-outline" size={24} color="#FFF" />
           </TouchableOpacity>
         </View>
       </BlurView>
@@ -235,7 +271,7 @@ export const PlayerScreen = ({
           ]}
         >
           <Image
-            source={{ uri: currentTrack.artwork }}
+            source={{ uri: currentTrack.artworkPath }}
             style={styles.artwork}
           />
         </Animated.View>
@@ -275,9 +311,9 @@ export const PlayerScreen = ({
               }))}
               minimumValue={0}
               maximumValue={1}
-              minimumTrackTintColor="#FF2D55"
-              maximumTrackTintColor="#4D4D4D"
-              thumbTintColor="#FF2D55"
+              minimumTrackTintColor="white"
+              maximumTrackTintColor="grey"
+              thumbTintColor="white"
             />
             <View style={styles.timeContainer}>
               <Text style={styles.timeText}>

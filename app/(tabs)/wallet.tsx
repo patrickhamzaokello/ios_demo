@@ -1,11 +1,19 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View,ScrollView } from 'react-native'
 import React from 'react'
-import ScreenWrapper from '@/components/ScreenWrapper'
+import { useLocalSearchParams } from 'expo-router';
+import ScreenWrapper from '@/components/ScreenWrapper';
+
+import { useAlbumDetailsData } from '@/hooks/albumDetailsData';
+import AlbumDetails from '@/components/Album';
 
 const Wallet = () => {
+    const { id, playlistName } = useLocalSearchParams<{ id: string; playlistName: string; }>();
+   const { data, loading, error, refetch } = useAlbumDetailsData(id);
   return (
     <ScreenWrapper>
-      <Text>Wallet</Text>
+      <ScrollView>
+          <AlbumDetails playlistResponse={data}/>
+      </ScrollView>
     </ScreenWrapper>
   )
 }

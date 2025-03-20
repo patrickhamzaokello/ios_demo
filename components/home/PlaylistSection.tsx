@@ -55,11 +55,11 @@ const styles = StyleSheet.create({
   },
   releaseItem: {
     marginRight: 16,
-    width: 192,
+    width: 160,
   },
   artwork: {
-    width: 192,
-    height: 192,
+    width: 160,
+    height: 160,
     borderRadius: 8,
   },
   title: {

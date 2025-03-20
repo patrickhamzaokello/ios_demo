@@ -44,7 +44,7 @@ const PlaylistControls = () => {
 
 const TrackItem: React.FC<{ track: Track; index: number }> = ({ track, index }) => {
   return (
-    <Pressable style={styles.trackItem}>
+    <Pressable style={styles.trackItem} onPress={() => console.log('Track pressed')}>
       <Text style={styles.trackNumber}>{index + 1}</Text>
       <Image
         source={{ uri: track.artworkPath }}

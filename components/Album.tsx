@@ -5,6 +5,7 @@ import ScreenWrapper from '@/components/ScreenWrapper';
 import Typo from '@/components/Typo';
 import { MwonyaPlaylistDetailsResponse, Playlist, Track } from '@/types/playlist';
 import { FlatList } from 'react-native';
+import { usePlayer } from '@/providers/PlayerProvider';
 
 interface AlbumDetailsProps {
   albumData: Playlist;
@@ -43,27 +44,52 @@ const AlbumControls = () => {
   );
 };
 
-const TrackItem: React.FC<{ track: Track; index: number }> = ({ track, index }) => {
-  return (
-    <Pressable style={styles.trackItem}>
-      <Text style={styles.trackNumber}>{index + 1}</Text>
-      <Image
-        source={{ uri: track.artworkPath } }
-        style={styles.trackArtwork}
-      />
-      <View style={styles.trackInfo}>
-        <Text style={styles.trackTitle}>{track.title}</Text>
-        <Text style={styles.trackArtist}>{track.artist}</Text>
-      </View>
-      <Text style={styles.trackDuration}>
-        {track.duration}
-      </Text>
-      <MoreVertical size={20} color="#666" />
-    </Pressable>
-  );
-};
-
+// Move the TrackItem component inside the parent component where usePlayer is already available
 const AlbumDetails: React.FC<{ playlistResponse: MwonyaPlaylistDetailsResponse | null }> = ({ playlistResponse }) => {
+  // Move the usePlayer hook here, at the top level of the component
+  const { setCurrentTrack } = usePlayer();
+  const [isLoading, setIsLoading] = React.useState(true);
+  
+  // Effect to handle initial loading state
+  React.useEffect(() => {
+    if (playlistResponse) {
+      setIsLoading(false);
+    }
+  }, [playlistResponse]);
+  
+  // Define TrackItem inside the parent component
+  const TrackItem = ({ track, index }: { track: Track; index: number }) => {
+    return (
+      <Pressable style={styles.trackItem} onPress={() => { setCurrentTrack(track);  }}>
+        <Text style={styles.trackNumber}>{index + 1}</Text>
+        <Image
+          source={{ uri: track.artworkPath }}
+          style={styles.trackArtwork}
+        />
+        <View style={styles.trackInfo}>
+          <Text style={styles.trackTitle}>{track.title}</Text>
+          <Text style={styles.trackArtist}>{track.artist}</Text>
+        </View>
+        <Text style={styles.trackDuration}>
+          {track.duration}
+        </Text>
+        <MoreVertical size={20} color="#666" />
+      </Pressable>
+    );
+  };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <ScreenWrapper>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading album...</Text>
+        </View>
+      </ScreenWrapper>
+    );
+  }
+
+  // Error state
   if (!playlistResponse || !playlistResponse.Playlists || playlistResponse.Playlists.length < 2) {
     return (
       <ScreenWrapper>
@@ -79,22 +105,24 @@ const AlbumDetails: React.FC<{ playlistResponse: MwonyaPlaylistDetailsResponse |
 
   return (
     <ScreenWrapper>
-      <AlbumHeader albumData={albumData} />
-      <AlbumControls />
+      <ScrollView>
+        <AlbumHeader albumData={albumData} />
+        <AlbumControls />
 
-      <View style={styles.trackList}>
-        <View style={styles.trackListHeader}>
-          <Text style={styles.trackListTitle}>Songs</Text>
-          <Clock size={16} color="#666" />
+        <View style={styles.trackList}>
+          <View style={styles.trackListHeader}>
+            <Text style={styles.trackListTitle}>Songs</Text>
+            <Clock size={16} color="#666" />
+          </View>
+          {tracks?.map((track, index) => (
+            <TrackItem
+              key={track.id || index}
+              track={track}
+              index={index}
+            />
+          ))}
         </View>
-
-        <FlatList
-          data={tracks}
-          renderItem={({ item, index }) => <TrackItem track={item} index={index} />}
-          keyExtractor={(item) => item.id} 
-          showsVerticalScrollIndicator={false}
-          />
-      </View>
+      </ScrollView>
     </ScreenWrapper>
   );
 };
@@ -104,6 +132,15 @@ export default AlbumDetails;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#666',
   },
   header: {
     padding: 20,
