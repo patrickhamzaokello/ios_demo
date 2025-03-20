@@ -10,6 +10,7 @@ import {
   Animated,
   PanResponder,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,17 +37,17 @@ export const PlayerScreen = () => {
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [shuffledPlaylist, setShuffledPlaylist] = useState<Track[]>([]);
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
-  const [currentTrackDuration, setCurrentTrackDuration] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const { currentTrack, setCurrentTrack } = usePlayer();
   const insets = useSafeAreaInsets();
   const [playerState, setPlayerState] = useState({
-    isPlaying: true,
+    isPlaying: false, // Changed to false initially
     isLiked: false,
     isShuffle: false,
     duration: 0,
     repeatMode: 0, // 0: off, 1: all, 2: one
-    progress: 0.3,
-    currentTime: 67, // 1:07 in seconds
+    progress: 0,
+    currentTime: 0,
     volume: 0.8,
     isLyricsVisible: false,
     queueVisible: false,
@@ -55,6 +56,11 @@ export const PlayerScreen = () => {
   // Animation refs
   const translateY = useRef(new Animated.Value(0)).current;
   const lastGesture = useRef(new Date().getTime());
+  const animationState = useRef({ isMaximized: false }).current;
+
+  // Fix for flickering: use a ref to track the animation state
+  // and prevent duplicate animations
+  const isAnimating = useRef(false);
 
   // Derived animation values
   const miniPlayerOpacity = translateY.interpolate({
@@ -102,21 +108,35 @@ export const PlayerScreen = () => {
 
   // Animation controls
   const minimizePlayer = () => {
+    if (isAnimating.current) return;
+    
+    isAnimating.current = true;
+    animationState.isMaximized = false;
+    
     Animated.spring(translateY, {
       toValue: 0,
       useNativeDriver: true,
       damping: 20,
       mass: 0.8,
-    }).start();
+    }).start(() => {
+      isAnimating.current = false;
+    });
   };
 
   const maximizePlayer = () => {
+    if (isAnimating.current) return;
+    
+    isAnimating.current = true;
+    animationState.isMaximized = true;
+    
     Animated.spring(translateY, {
       toValue: -SCREEN_HEIGHT,
       useNativeDriver: true,
       damping: 20,
       mass: 0.8,
-    }).start();
+    }).start(() => {
+      isAnimating.current = false;
+    });
   };
 
   const handleSeek = useCallback(async (value) => {
@@ -131,12 +151,27 @@ export const PlayerScreen = () => {
     }
   }, [sound, playerState.duration]);
 
-  const handleVolumeChange = async (value) => {
-    if (sound) {
-      await sound.setVolumeAsync(value);
-      setPlayerState(prev => ({ ...prev, volume: value }));
-    }
-  };
+
+  // Set up audio session at component mount
+  useEffect(() => {
+    const setupAudio = async () => {
+      try {
+        // Enable audio playback in silent mode (iOS)
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+          allowsRecordingIOS: false,
+        });
+        console.log('Audio mode set successfully');
+      } catch (error) {
+        console.error('Error setting audio mode:', error);
+      }
+    };
+
+    setupAudio();
+  }, []);
 
   // Handlers
   const togglePlayPause = useCallback(async () => {
@@ -218,21 +253,53 @@ export const PlayerScreen = () => {
     }
   };
 
-
-
+  // Handle track changes and loading
   useEffect(() => {
     if (!currentTrack) return;
   
     const playCurrentTrack = async () => {
       try {
+        setIsLoading(true);
+        
         if (sound) {
           await sound.unloadAsync(); // Unload previous sound
         }
   
         console.log('Loading audio:', currentTrack.path);
+        
+        // Create the sound object
         const { sound: newSound, status } = await Audio.Sound.createAsync(
           { uri: currentTrack.path },
-          { shouldPlay: true } // Automatically play after loading
+          { 
+            shouldPlay: true,
+            progressUpdateIntervalMillis: 500, // Update progress every 500ms
+            positionMillis: 0,
+            volume: playerState.volume,
+          },
+          (status) => {
+            // This is the status update callback
+            if (status.isLoaded) {
+              setPlayerState((prev) => ({
+                ...prev,
+                progress: status.positionMillis / status.durationMillis,
+                currentTime: status.positionMillis / 1000,
+                isPlaying: status.isPlaying,
+              }));
+            }
+            
+            // Handle playback finished
+            if (status.didJustFinish && !status.isLooping) {
+              // Play next track based on repeat mode
+              if (playerState.repeatMode === 1) { // repeat all
+                playNextTrack();
+              } else if (playerState.repeatMode === 0 && 
+                ((playerState.isShuffle && currentTrackIndex < shuffledPlaylist.length - 1) || 
+                (!playerState.isShuffle && currentTrackIndex < playlist.length - 1))) {
+                // Only play next if not on last track and repeat is off
+                playNextTrack();
+              }
+            }
+          }
         );
   
         console.log('Audio loaded with status:', status);
@@ -241,16 +308,26 @@ export const PlayerScreen = () => {
           const durationInSeconds = status.durationMillis / 1000; // Convert milliseconds to seconds
           console.log('Audio duration:', durationInSeconds);
   
-          // Update the state with the duration
+          // Update the state with the duration and indicate that we're playing
           setPlayerState((prev) => ({
             ...prev,
-            duration: durationInSeconds, // Add this to your state
+            duration: durationInSeconds,
+            isPlaying: true,
+            currentTime: 0,
+            progress: 0,
           }));
         }
   
         setSound(newSound);
+        setIsLoading(false);
       } catch (error) {
         console.error('Error loading or playing audio:', error);
+        setIsLoading(false);
+        // Reset playing state on error
+        setPlayerState(prev => ({
+          ...prev,
+          isPlaying: false
+        }));
       }
     };
   
@@ -263,25 +340,6 @@ export const PlayerScreen = () => {
       }
     };
   }, [currentTrack]);
-
-  useEffect(() => {
-    if (!sound) return;
-  
-    const updateInterval = setInterval(() => {
-      sound.getStatusAsync().then((status) => {
-        if (status.isLoaded) {
-          setPlayerState((prev) => ({
-            ...prev,
-            progress: status.positionMillis / status.durationMillis,
-            currentTime: status.positionMillis / 1000,
-          }));
-        }
-      });
-    }, 500); // Update every 500ms instead of on every callback
-  
-    return () => clearInterval(updateInterval);
-  }, [sound]);
-
 
   if (!currentTrack) {
     return null;
@@ -311,22 +369,26 @@ export const PlayerScreen = () => {
         </TouchableOpacity>
 
         <View style={styles.miniPlayerControls}>
-          <TouchableOpacity
-            onPress={togglePlayPause}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons
-              name={playerState.isPlaying ? "pause-circle" : "play-circle"}
-              size={32}
-              color="#FF2D55"
-            />
-          </TouchableOpacity>
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#FF2D55" />
+          ) : (
+            <TouchableOpacity
+              onPress={togglePlayPause}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons
+                name={playerState.isPlaying ? "pause-circle" : "play-circle"}
+                size={32}
+                color="#FF2D55"
+              />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={styles.miniPlayerNext}
             onPress={playNextTrack}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="heart-outline" size={24} color="#FFF" />
+            <Ionicons name="play-skip-forward" size={24} color="#FFF" />
           </TouchableOpacity>
         </View>
       </BlurView>
@@ -390,6 +452,13 @@ export const PlayerScreen = () => {
             source={{ uri: currentTrack.artworkPath }}
             style={styles.artwork}
           />
+          
+          {/* Loading indicator over artwork when loading */}
+          {isLoading && (
+            <View style={styles.loaderOverlay}>
+              <ActivityIndicator size="large" color="#FF2D55" />
+            </View>
+          )}
         </Animated.View>
 
         {/* Track Info */}
@@ -426,6 +495,7 @@ export const PlayerScreen = () => {
               minimumTrackTintColor="white"
               maximumTrackTintColor="grey"
               thumbTintColor="white"
+              disabled={isLoading}
             />
             <View style={styles.timeContainer}>
               <Text style={styles.timeText}>
@@ -442,61 +512,74 @@ export const PlayerScreen = () => {
             <TouchableOpacity
               onPress={toggleShuffle}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              disabled={isLoading}
             >
               <Ionicons
                 name="shuffle"
                 size={24}
                 color={playerState.isShuffle ? "#FF2D55" : "#FFF"}
+                style={isLoading ? styles.disabledControl : {}}
               />
             </TouchableOpacity>
 
             <TouchableOpacity
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               onPress={playPreviousTrack}
+              disabled={isLoading}
             >
-              <Ionicons name="play-skip-back" size={35} color="#FFF" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.playButton}
-              onPress={togglePlayPause}
-            >
-              <Ionicons
-                name={playerState.isPlaying ? "pause" : "play"}
-                size={40}
-                color="#FFF"
+              <Ionicons 
+                name="play-skip-back" 
+                size={35} 
+                color="#FFF" 
+                style={isLoading ? styles.disabledControl : {}}
               />
             </TouchableOpacity>
+
+            {isLoading ? (
+              <View style={styles.playButton}>
+                <ActivityIndicator size="large" color="#FFF" />
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.playButton}
+                onPress={togglePlayPause}
+              >
+                <Ionicons
+                  name={playerState.isPlaying ? "pause" : "play"}
+                  size={40}
+                  color="#FFF"
+                />
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               onPress={playNextTrack}
+              disabled={isLoading}
             >
-              <Ionicons name="play-skip-forward" size={35} color="#FFF" />
+              <Ionicons 
+                name="play-skip-forward" 
+                size={35} 
+                color="#FFF" 
+                style={isLoading ? styles.disabledControl : {}}
+              />
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={toggleRepeatMode}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              disabled={isLoading}
             >
               <Ionicons
                 name={playerState.repeatMode === 2 ? "repeat-one" : "repeat"}
                 size={24}
                 color={playerState.repeatMode > 0 ? "#FF2D55" : "#FFF"}
+                style={isLoading ? styles.disabledControl : {}}
               />
             </TouchableOpacity>
           </View>
 
-          <Slider
-            style={styles.volumeSlider}
-            value={playerState.volume}
-            onValueChange={handleVolumeChange}
-            minimumValue={0}
-            maximumValue={1}
-            minimumTrackTintColor="white"
-            maximumTrackTintColor="grey"
-            thumbTintColor="white"
-          />
+
 
           {/* Bottom Controls */}
           <View style={styles.bottomControls}>
@@ -506,19 +589,27 @@ export const PlayerScreen = () => {
                 ...prev,
                 isLyricsVisible: !prev.isLyricsVisible
               }))}
+              disabled={isLoading}
             >
-              <Ionicons name="text" size={22} color="#FFF" />
+              <Ionicons 
+                name="text" 
+                size={22} 
+                color="#FFF" 
+                style={isLoading ? styles.disabledControl : {}}
+              />
               <Text style={styles.bottomButtonText}>Lyrics</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.bottomButton}
               onPress={() => {/* Handle AirPlay */ }}
+              disabled={isLoading}
             >
               <Ionicons
                 name="map" // Use "cast" for both iOS and Android
                 size={22}
                 color="#FFF"
+                style={isLoading ? styles.disabledControl : {}}
               />
               <Text style={styles.bottomButtonText}>
                 {Platform.OS === 'ios' ? 'AirPlay' : 'Cast'}
@@ -528,8 +619,14 @@ export const PlayerScreen = () => {
             <TouchableOpacity
               style={styles.bottomButton}
               onPress={() => {/* Handle Queue */ }}
+              disabled={isLoading}
             >
-              <Ionicons name="list" size={22} color="#FFF" />
+              <Ionicons 
+                name="list" 
+                size={22} 
+                color="#FFF" 
+                style={isLoading ? styles.disabledControl : {}}
+              />
               <Text style={styles.bottomButtonText}>Queue</Text>
             </TouchableOpacity>
           </View>
@@ -597,11 +694,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-
-  miniProgressIndicator: {},
+  miniProgressIndicator: {
+    height: 2,
+    backgroundColor: '#FF2D55', // More visible progress indicator
+    width: '0%', // Default width, will be dynamically updated
+  },
   miniProgressBar: {
     height: 2,
-    backgroundColor: 'rgba(255, 45, 85, 0.5)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   miniPlayerNext: {
     marginLeft: 16,
@@ -640,10 +740,22 @@ const styles = StyleSheet.create({
   artworkContainer: {
     paddingHorizontal: 24,
     marginTop: 32,
+    position: 'relative', // For loading overlay
   },
   artwork: {
     width: '100%',
     aspectRatio: 1,
+    borderRadius: 8,
+  },
+  loaderOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 24, // Match the padding of the container
+    right: 24, // Match the padding of the container
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderRadius: 8,
   },
   trackInfo: {
@@ -714,6 +826,9 @@ const styles = StyleSheet.create({
   bottomButton: {
     flex: 1,
     alignItems: 'center',
+  },
+  disabledControl: {
+    opacity: 0.5,
   },
 });
 
