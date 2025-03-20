@@ -14,7 +14,8 @@
       "infoPlist": {
         "UIBackgroundModes": [
           "audio"
-        ]
+        ],
+        "NSAppleMusicUsageDescription": "This app uses audio playback."
       }
     },
     "android": {

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/constants/theme';
 import { usePlayer } from '@/providers/PlayerProvider';
 import { Audio } from 'expo-av';
+import { Track } from '@/types/playlist';
+import playlist from '@/app/(details)/playlist';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -32,12 +34,16 @@ const formatTime = (seconds: number) => {
 
 export const PlayerScreen = () => {
   const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const { currentTrack } = usePlayer();
+  const [shuffledPlaylist, setShuffledPlaylist] = useState<Track[]>([]);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
+  const [currentTrackDuration, setCurrentTrackDuration] = useState<number>(0);
+  const { currentTrack, setCurrentTrack } = usePlayer();
   const insets = useSafeAreaInsets();
   const [playerState, setPlayerState] = useState({
     isPlaying: true,
     isLiked: false,
     isShuffle: false,
+    duration: 0,
     repeatMode: 0, // 0: off, 1: all, 2: one
     progress: 0.3,
     currentTime: 67, // 1:07 in seconds
@@ -113,67 +119,176 @@ export const PlayerScreen = () => {
     }).start();
   };
 
-  // Handlers
-  const togglePlayPause = () => {
-    setPlayerState(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
+  const handleSeek = useCallback(async (value) => {
+    if (sound) {
+      const position = value * playerState.duration * 1000;
+      await sound.setPositionAsync(position);
+      setPlayerState((prev) => ({
+        ...prev,
+        progress: value,
+        currentTime: value * playerState.duration,
+      }));
+    }
+  }, [sound, playerState.duration]);
+
+  const handleVolumeChange = async (value) => {
+    if (sound) {
+      await sound.setVolumeAsync(value);
+      setPlayerState(prev => ({ ...prev, volume: value }));
+    }
   };
+
+  // Handlers
+  const togglePlayPause = useCallback(async () => {
+    if (sound) {
+      if (playerState.isPlaying) {
+        await sound.pauseAsync();
+      } else {
+        await sound.playAsync();
+      }
+      setPlayerState((prev) => ({ ...prev, isPlaying: !prev.isPlaying }));
+    }
+  }, [sound, playerState.isPlaying]);
 
   const toggleLike = () => {
     setPlayerState(prev => ({ ...prev, isLiked: !prev.isLiked }));
   };
 
-  const toggleRepeatMode = () => {
-    setPlayerState(prev => ({
-      ...prev,
-      repeatMode: (prev.repeatMode + 1) % 3
-    }));
+  const toggleRepeatMode = async () => {
+    const newRepeatMode = (playerState.repeatMode + 1) % 3;
+    setPlayerState(prev => ({ ...prev, repeatMode: newRepeatMode }));
+
+    if (sound) {
+      await sound.setIsLoopingAsync(newRepeatMode === 2); // Loop if repeatMode is 2 (repeat one)
+    }
+  };
+
+  const shufflePlaylist = (playlist: Track[]) => {
+    const shuffled = [...playlist];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
   };
 
   const toggleShuffle = () => {
-    setPlayerState(prev => ({ ...prev, isShuffle: !prev.isShuffle }));
+    const newShuffleState = !playerState.isShuffle;
+    setPlayerState(prev => ({ ...prev, isShuffle: newShuffleState }));
+  
+    if (newShuffleState) {
+      // Shuffle the playlist
+      const shuffled = shufflePlaylist(playlist); // Assuming `playlist` is your original playlist
+      setShuffledPlaylist(shuffled);
+  
+      // Find the index of the current track in the shuffled playlist
+      const currentIndex = shuffled.findIndex(track => track.id === currentTrack.id);
+      setCurrentTrackIndex(currentIndex);
+    } else {
+      // Revert to the original playlist
+      setShuffledPlaylist([]);
+  
+      // Find the index of the current track in the original playlist
+      const currentIndex = playlist.findIndex(track => track.id === currentTrack.id);
+      setCurrentTrackIndex(currentIndex);
+    }
   };
 
-  // Effect to handle sound playback
+  const playNextTrack = async () => {
+    if (playerState.isShuffle && shuffledPlaylist.length > 0) {
+      const nextIndex = (currentTrackIndex + 1) % shuffledPlaylist.length;
+      setCurrentTrackIndex(nextIndex);
+      setCurrentTrack(shuffledPlaylist[nextIndex]);
+    } else {
+      const nextIndex = (currentTrackIndex + 1) % playlist.length;
+      setCurrentTrackIndex(nextIndex);
+      setCurrentTrack(playlist[nextIndex]);
+    }
+  };
+  
+  const playPreviousTrack = async () => {
+    if (playerState.isShuffle && shuffledPlaylist.length > 0) {
+      const prevIndex = (currentTrackIndex - 1 + shuffledPlaylist.length) % shuffledPlaylist.length;
+      setCurrentTrackIndex(prevIndex);
+      setCurrentTrack(shuffledPlaylist[prevIndex]);
+    } else {
+      const prevIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+      setCurrentTrackIndex(prevIndex);
+      setCurrentTrack(playlist[prevIndex]);
+    }
+  };
+
+
+
   useEffect(() => {
     if (!currentTrack) return;
-
+  
     const playCurrentTrack = async () => {
-      if (sound) {
-        await sound.unloadAsync();
+      try {
+        if (sound) {
+          await sound.unloadAsync(); // Unload previous sound
+        }
+  
+        console.log('Loading audio:', currentTrack.path);
+        const { sound: newSound, status } = await Audio.Sound.createAsync(
+          { uri: currentTrack.path },
+          { shouldPlay: true } // Automatically play after loading
+        );
+  
+        console.log('Audio loaded with status:', status);
+  
+        if (status.isLoaded) {
+          const durationInSeconds = status.durationMillis / 1000; // Convert milliseconds to seconds
+          console.log('Audio duration:', durationInSeconds);
+  
+          // Update the state with the duration
+          setPlayerState((prev) => ({
+            ...prev,
+            duration: durationInSeconds, // Add this to your state
+          }));
+        }
+  
+        setSound(newSound);
+      } catch (error) {
+        console.error('Error loading or playing audio:', error);
       }
-
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: currentTrack.path },
-      );
-
-      setSound(newSound);
-      await newSound.playAsync();
     };
-
+  
     playCurrentTrack();
-
+  
     return () => {
       if (sound) {
-        sound.unloadAsync();
+        console.log('unloading sound');
+        sound.unloadAsync(); // Cleanup on unmount
       }
     };
   }, [currentTrack]);
 
   useEffect(() => {
-    return sound ? () => {
-      console.log('unloading sound');
-      sound.unloadAsync();
-    }
-      : undefined;
-  }, [sound]);
+    if (!sound) return;
   
+    const updateInterval = setInterval(() => {
+      sound.getStatusAsync().then((status) => {
+        if (status.isLoaded) {
+          setPlayerState((prev) => ({
+            ...prev,
+            progress: status.positionMillis / status.durationMillis,
+            currentTime: status.positionMillis / 1000,
+          }));
+        }
+      });
+    }, 500); // Update every 500ms instead of on every callback
+  
+    return () => clearInterval(updateInterval);
+  }, [sound]);
+
 
   if (!currentTrack) {
     return null;
   }
 
   // Mini Player Component
-  const MiniPlayer = () => (
+  const MiniPlayer = React.memo(() => (
     <Animated.View style={[styles.miniPlayer, { opacity: miniPlayerOpacity }]}>
       <BlurView intensity={80} tint="dark" style={styles.miniPlayerContent}>
         <TouchableOpacity
@@ -208,6 +323,7 @@ export const PlayerScreen = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.miniPlayerNext}
+            onPress={playNextTrack}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="heart-outline" size={24} color="#FFF" />
@@ -223,10 +339,10 @@ export const PlayerScreen = () => {
         />
       </View>
     </Animated.View>
-  );
+  ));
 
   // Main Player Component
-  const MainPlayer = () => (
+  const MainPlayer = React.memo(() => (
     <Animated.View
       style={[
         styles.fullPlayer,
@@ -304,11 +420,7 @@ export const PlayerScreen = () => {
             <Slider
               style={styles.progressBar}
               value={playerState.progress}
-              onValueChange={(value) => setPlayerState(prev => ({
-                ...prev,
-                progress: value,
-                currentTime: value * currentTrack.duration
-              }))}
+              onSlidingComplete={handleSeek}
               minimumValue={0}
               maximumValue={1}
               minimumTrackTintColor="white"
@@ -320,7 +432,7 @@ export const PlayerScreen = () => {
                 {formatTime(playerState.currentTime)}
               </Text>
               <Text style={styles.timeText}>
-                {formatTime(currentTrack.duration)}
+                {formatTime(playerState.duration)}
               </Text>
             </View>
           </View>
@@ -340,6 +452,7 @@ export const PlayerScreen = () => {
 
             <TouchableOpacity
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              onPress={playPreviousTrack}
             >
               <Ionicons name="play-skip-back" size={35} color="#FFF" />
             </TouchableOpacity>
@@ -357,6 +470,7 @@ export const PlayerScreen = () => {
 
             <TouchableOpacity
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              onPress={playNextTrack}
             >
               <Ionicons name="play-skip-forward" size={35} color="#FFF" />
             </TouchableOpacity>
@@ -372,6 +486,17 @@ export const PlayerScreen = () => {
               />
             </TouchableOpacity>
           </View>
+
+          <Slider
+            style={styles.volumeSlider}
+            value={playerState.volume}
+            onValueChange={handleVolumeChange}
+            minimumValue={0}
+            maximumValue={1}
+            minimumTrackTintColor="white"
+            maximumTrackTintColor="grey"
+            thumbTintColor="white"
+          />
 
           {/* Bottom Controls */}
           <View style={styles.bottomControls}>
@@ -391,7 +516,7 @@ export const PlayerScreen = () => {
               onPress={() => {/* Handle AirPlay */ }}
             >
               <Ionicons
-                name={Platform.OS === 'ios' ? "airplay" : "cast"}
+                name="map" // Use "cast" for both iOS and Android
                 size={22}
                 color="#FFF"
               />
@@ -411,7 +536,7 @@ export const PlayerScreen = () => {
         </View>
       </SafeAreaView>
     </Animated.View>
-  );
+  ));
 
   return (
     <>
@@ -548,6 +673,10 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     marginVertical: 16,
+  },
+  volumeSlider: {
+    width: '100%',
+    height: 40,
   },
   progressBar: {
     width: '100%',
