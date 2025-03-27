@@ -6,7 +6,7 @@ import ScreenWrapper from '@/components/ScreenWrapper';
 import { useAlbumDetailsData } from '@/hooks/albumDetailsData';
 import AlbumDetails from '@/components/Album';
 
-const Wallet = () => {
+const Library = () => {
     const { id, playlistName } = useLocalSearchParams<{ id: string; playlistName: string; }>();
    const { data, loading, error, refetch } = useAlbumDetailsData(id);
   return (
@@ -18,6 +18,6 @@ const Wallet = () => {
   )
 }
 
-export default Wallet
+export default Library
 
 const styles = StyleSheet.create({})

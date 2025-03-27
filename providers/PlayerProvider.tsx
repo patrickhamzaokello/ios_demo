@@ -1,24 +1,54 @@
-import React, { createContext, PropsWithChildren, useContext, useState } from 'react';
-import { PlayerScreen } from '../components/player/PlayerScreen'; // Import the PlayerScreen component we created earlier
+import React, { createContext, PropsWithChildren, useContext, useState, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
+import PlayerScreen from '../components/player/PlayerScreen';
+import { Track } from '@/types/playlist';
+// import { Track } from '../types'; // Define your Track type
 
 interface PlayerContextType {
   showPlayer: () => void;
   hidePlayer: () => void;
   isPlayerVisible: boolean;
-  currentTrack: any; // Define proper track type
-  setCurrentTrack: (track: any) => void;
+  currentTrack: Track | null;
+  setCurrentTrack: (track: Track) => void;
+  playTrack: (track: Track) => void;
+  playlist: Track[];
+  addToQueue: (tracks: Track | Track[]) => void;
+  clearQueue: () => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 
 export function PlayerProvider({ children }: PropsWithChildren) {
   const [isPlayerVisible, setIsPlayerVisible] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState(null);
+  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+  const [playlist, setPlaylist] = useState<Track[]>([]);
 
-  const showPlayer = () => setIsPlayerVisible(true);
-  const hidePlayer = () => setIsPlayerVisible(false);
+  const showPlayer = useCallback((track?: Track) => {
+    if (track) setCurrentTrack(track);
+    setIsPlayerVisible(true);
+  }, []);
+  
+  const hidePlayer = useCallback(() => {
+    setIsPlayerVisible(false);
+    // Optionally pause playback when hiding
+    // sound?.pauseAsync();
+  }, []);
+  
+  const playTrack = useCallback((track: Track) => {
+    setCurrentTrack(track);
+    showPlayer();
+  }, [showPlayer]);
 
+  const addToQueue = useCallback((tracks: Track | Track[]) => {
+    setPlaylist(prev => [
+      ...prev,
+      ...(Array.isArray(tracks) ? tracks : [tracks])
+    ]);
+  }, []);
+
+  const clearQueue = useCallback(() => {
+    setPlaylist([]);
+  }, []);
 
   return (
     <PlayerContext.Provider
@@ -27,12 +57,16 @@ export function PlayerProvider({ children }: PropsWithChildren) {
         hidePlayer,
         isPlayerVisible,
         currentTrack,
-        setCurrentTrack
+        setCurrentTrack,
+        playTrack,
+        playlist,
+        addToQueue,
+        clearQueue
       }}
     >
       <View style={styles.container}>
         {children}
-        <PlayerScreen />
+        {isPlayerVisible && <PlayerScreen />}
       </View>
     </PlayerContext.Provider>
   );
@@ -49,5 +83,7 @@ export const usePlayer = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative',
   },
 });
+

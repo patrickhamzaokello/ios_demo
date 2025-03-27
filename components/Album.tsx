@@ -2,37 +2,32 @@ import React from 'react';
 import { StyleSheet, Text, View, Image, Pressable, ScrollView } from 'react-native';
 import { Play, Heart, MoreVertical, Clock } from 'lucide-react-native';
 import ScreenWrapper from '@/components/ScreenWrapper';
-import Typo from '@/components/Typo';
 import { MwonyaPlaylistDetailsResponse, Playlist, Track } from '@/types/playlist';
-import { FlatList } from 'react-native';
 import { usePlayer } from '@/providers/PlayerProvider';
 
 interface AlbumDetailsProps {
-  albumData: Playlist;
+  playlistResponse: MwonyaPlaylistDetailsResponse | null;
 }
 
-const AlbumHeader: React.FC<AlbumDetailsProps> = ({ albumData }) => {
+const AlbumHeader: React.FC<{ albumData: Playlist }> = ({ albumData }) => {
   return (
     <View style={styles.header}>
-      <Image
-        source={{ uri: albumData.cover }}
-        style={styles.coverArt}
-      />
+      <Image source={{ uri: albumData.cover }} style={styles.coverArt} />
       <View style={styles.headerInfo}>
-        <Typo style={styles.playlistName}>{albumData.name}</Typo>
-        <Typo style={styles.albumDetails}>
+        <Text style={styles.playlistName}>{albumData.name}</Text>
+        <Text style={styles.albumDetails}>
           {albumData.owner} • {albumData.total} songs
-        </Typo>
+        </Text>
         <Text style={styles.description}>{albumData.description}</Text>
       </View>
     </View>
   );
 };
 
-const AlbumControls = () => {
+const AlbumControls: React.FC<{ onPlayAll: () => void }> = ({ onPlayAll }) => {
   return (
     <View style={styles.controls}>
-      <Pressable style={styles.playButton}>
+      <Pressable style={styles.playButton} onPress={onPlayAll}>
         <Play fill="white" size={22} />
         <Text style={styles.playText}>Play</Text>
       </Pressable>
@@ -44,41 +39,61 @@ const AlbumControls = () => {
   );
 };
 
-// Move the TrackItem component inside the parent component where usePlayer is already available
-const AlbumDetails: React.FC<{ playlistResponse: MwonyaPlaylistDetailsResponse | null }> = ({ playlistResponse }) => {
-  // Move the usePlayer hook here, at the top level of the component
-  const { setCurrentTrack } = usePlayer();
+const TrackItem: React.FC<{ 
+  track: Track; 
+  index: number;
+  onPress: (track: Track,  index: number) => void 
+}> = ({ track, index, onPress }) => {
+  return (
+    <Pressable style={styles.trackItem} onPress={() => onPress(track, index)}>
+      <Text style={styles.trackNumber}>{index + 1}</Text>
+      <Image source={{ uri: track.artworkPath }} style={styles.trackArtwork} />
+      <View style={styles.trackInfo}>
+        <Text style={styles.trackTitle}>{track.title}</Text>
+        <Text style={styles.trackArtist}>{track.artist}</Text>
+      </View>
+      <Text style={styles.trackDuration}>{formatDuration(Number(track.duration))}</Text>
+      <MoreVertical size={20} color="#666" />
+    </Pressable>
+  );
+};
+
+const formatDuration = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+const AlbumDetails: React.FC<AlbumDetailsProps> = ({ playlistResponse }) => {
+  const { playTrack, addToQueue } = usePlayer();
   const [isLoading, setIsLoading] = React.useState(true);
-  
-  // Effect to handle initial loading state
+
   React.useEffect(() => {
     if (playlistResponse) {
       setIsLoading(false);
     }
   }, [playlistResponse]);
-  
-  // Define TrackItem inside the parent component
-  const TrackItem = ({ track, index }: { track: Track; index: number }) => {
-    return (
-      <Pressable style={styles.trackItem} onPress={() => { setCurrentTrack(track);  }}>
-        <Text style={styles.trackNumber}>{index + 1}</Text>
-        <Image
-          source={{ uri: track.artworkPath }}
-          style={styles.trackArtwork}
-        />
-        <View style={styles.trackInfo}>
-          <Text style={styles.trackTitle}>{track.title}</Text>
-          <Text style={styles.trackArtist}>{track.artist}</Text>
-        </View>
-        <Text style={styles.trackDuration}>
-          {track.duration}
-        </Text>
-        <MoreVertical size={20} color="#666" />
-      </Pressable>
-    );
+
+  const handlePlayTrack = (track: Track, index: number) => {
+    playTrack(track);
+
+    // Add the rest of the tracks to the queue
+    if (playlistResponse?.Playlists?.[1]?.Tracks) {
+      addToQueue(playlistResponse.Playlists[1].Tracks.slice(index + 1));
+    }
+    
   };
 
-  // Loading state
+  const handlePlayAll = () => {
+    if (!playlistResponse?.Playlists?.[1]?.Tracks) return;
+    
+    const tracks = playlistResponse.Playlists[1].Tracks;
+    if (tracks.length > 0) {
+      playTrack(tracks[0]);
+      addToQueue(tracks.slice(1));
+    }
+  };
+
   if (isLoading) {
     return (
       <ScreenWrapper>
@@ -89,7 +104,6 @@ const AlbumDetails: React.FC<{ playlistResponse: MwonyaPlaylistDetailsResponse |
     );
   }
 
-  // Error state
   if (!playlistResponse || !playlistResponse.Playlists || playlistResponse.Playlists.length < 2) {
     return (
       <ScreenWrapper>
@@ -98,16 +112,14 @@ const AlbumDetails: React.FC<{ playlistResponse: MwonyaPlaylistDetailsResponse |
     );
   }
 
-  // Take the first playlist from the response for album details
   const albumData = playlistResponse.Playlists[0];
-  // Take the tracks from the second element in the Playlists array
   const tracks = playlistResponse.Playlists[1].Tracks;
 
   return (
     <ScreenWrapper>
       <ScrollView>
         <AlbumHeader albumData={albumData} />
-        <AlbumControls />
+        <AlbumControls onPlayAll={handlePlayAll} />
 
         <View style={styles.trackList}>
           <View style={styles.trackListHeader}>
@@ -119,6 +131,7 @@ const AlbumDetails: React.FC<{ playlistResponse: MwonyaPlaylistDetailsResponse |
               key={track.id || index}
               track={track}
               index={index}
+              onPress={handlePlayTrack}
             />
           ))}
         </View>
@@ -126,8 +139,6 @@ const AlbumDetails: React.FC<{ playlistResponse: MwonyaPlaylistDetailsResponse |
     </ScreenWrapper>
   );
 };
-
-export default AlbumDetails;
 
 const styles = StyleSheet.create({
   container: {
@@ -249,3 +260,5 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
 });
+
+export default AlbumDetails;

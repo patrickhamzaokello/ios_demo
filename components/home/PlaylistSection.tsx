@@ -23,7 +23,7 @@ export function PlaylistSection({ data }: Props) {
             <AnimatedPressable 
             key={item.id}
               style={styles.releaseItem}
-              onPress={() => router.push({ pathname: "/(details)/playlist", params: { id: item.id, playlistName: item.name } })}
+              onPress={() => router.push({ pathname: "/(content)/playlist", params: { id: item.id, playlistName: item.name } })}
               entering={FadeInRight.delay(index * 100)}>
               <Image 
                 source={{ uri: item.coverurl }}

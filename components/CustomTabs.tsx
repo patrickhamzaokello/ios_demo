@@ -32,14 +32,14 @@ export default function CustomTabs({ state, descriptors, navigation }: BottomTab
                 <Typo size={10} color={isFocused ? colors.primary : colors.neutral400}>Search</Typo>
             </>
         ),
-        wallet: (isFocused: boolean) => (
+        library: (isFocused: boolean) => (
             <>
-                <Icons.Wallet
+                <Icons.ListHeart
                     size={verticalScale(30)}
                     weight={isFocused ? "fill" : "regular"}
                     color={isFocused ? colors.primary : colors.neutral400}
                 />
-                <Typo size={10} color={isFocused ? colors.primary : colors.neutral400}>Wallet</Typo>
+                <Typo size={10} color={isFocused ? colors.primary : colors.neutral400}>Library</Typo>
             </>
         ),
         profile: (isFocused: boolean) => (

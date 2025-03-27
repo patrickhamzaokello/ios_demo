@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import {
   View,
   Text,
@@ -7,665 +7,569 @@ import {
   TouchableOpacity,
   Dimensions,
   SafeAreaView,
-  Animated,
-  PanResponder,
-  Platform,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Audio } from 'expo-av';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  interpolate,
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
 import { colors } from '@/constants/theme';
 import { usePlayer } from '@/providers/PlayerProvider';
-import { Audio } from 'expo-av';
 import { Track } from '@/types/playlist';
-import playlist from '@/app/(details)/playlist';
+import ScreenWrapper from '../ScreenWrapper';
+import { LinearGradient } from 'expo-linear-gradient';
+import ColorThief from '../../node_modules/colorthief/dist/color-thief.mjs'
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
 const MINI_PLAYER_HEIGHT = 64;
 const GESTURE_THRESHOLD = SCREEN_HEIGHT / 3;
 
+// Helper components
+const TimeDisplay = memo(({ time }: { time: number }) => (
+  <Text style={styles.timeText}>{formatTime(time)}</Text>
+));
+
+// Format time helper
 const formatTime = (seconds: number) => {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-export const PlayerScreen = () => {
+const ControlButton = memo(({
+  icon,
+  onPress,
+  active = false,
+  disabled = false,
+  size = 24,
+}: {
+  icon: string;
+  onPress: () => void;
+  active?: boolean;
+  disabled?: boolean;
+  size?: number;
+}) => (
+  <TouchableOpacity
+    onPress={onPress}
+    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    disabled={disabled}
+  >
+    <Ionicons
+      name={icon as any}
+      size={size}
+      color={active ? colors.primary : colors.white}
+      style={disabled ? styles.disabledControl : {}}
+    />
+  </TouchableOpacity>
+));
+
+// Main component
+const PlayerScreen = () => {
+  const { currentTrack, setCurrentTrack, playlist } = usePlayer();
   const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [shuffledPlaylist, setShuffledPlaylist] = useState<Track[]>([]);
-  const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const { currentTrack, setCurrentTrack } = usePlayer();
+  const [isLoading, setIsLoading] = useState(false);
   const insets = useSafeAreaInsets();
+
   const [playerState, setPlayerState] = useState({
-    isPlaying: false, // Changed to false initially
+    isPlaying: false,
     isLiked: false,
     isShuffle: false,
     duration: 0,
     repeatMode: 0, // 0: off, 1: all, 2: one
     progress: 0,
     currentTime: 0,
-    volume: 0.8,
-    isLyricsVisible: false,
-    queueVisible: false,
+    isFullscreen: false,
   });
+  
 
-  // Animation refs
-  const translateY = useRef(new Animated.Value(0)).current;
-  const lastGesture = useRef(new Date().getTime());
-  const animationState = useRef({ isMaximized: false }).current;
+  const [backgroundColors, setBackgroundColors] = useState<readonly [string, string, ...string[]]>(['#333333', '#000000']);
 
-  // Fix for flickering: use a ref to track the animation state
-  // and prevent duplicate animations
-  const isAnimating = useRef(false);
+  const extractDominantColors = async (imageUri: string) => {
+    try {
+      // Create an Image object to work with ColorThief
+      const image = new window.Image();
+      image.src = imageUri;
 
-  // Derived animation values
-  const miniPlayerOpacity = translateY.interpolate({
-    inputRange: [-SCREEN_HEIGHT, -SCREEN_HEIGHT / 2, 0],
-    outputRange: [0, 0.5, 1],
-    extrapolate: 'clamp',
-  });
+      image.onload = () => {
+        const colorThief = new ColorThief();
 
-  const fullPlayerOpacity = translateY.interpolate({
-    inputRange: [-SCREEN_HEIGHT, -SCREEN_HEIGHT / 2, 0],
-    outputRange: [1, 0.5, 0],
-    extrapolate: 'clamp',
-  });
+        // Extract the dominant color and color palette
+        const dominantColor = colorThief.getColor(image);
+        const palette = colorThief.getPalette(image, 5);
 
-  const artworkScale = translateY.interpolate({
-    inputRange: [-SCREEN_HEIGHT, -SCREEN_HEIGHT + 100],
-    outputRange: [1, 0.95],
-    extrapolate: 'clamp',
-  });
+        // Convert RGB colors to hex
+        const dominantHex = rgbToHex(dominantColor[0], dominantColor[1], dominantColor[2]);
+        const paletteHex: string[] = palette.map((color: [number, number, number]) => rgbToHex(...color));
 
-  // Gesture Handler
-  const panResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (_, gestureState) => {
-      const now = new Date().getTime();
-      const timeDiff = now - lastGesture.current;
-      lastGesture.current = now;
+        // Create gradient colors based on the dominant color
+        const gradientColors: [string, string] = [
+          darkenColor(dominantHex, 0.2),  // Darker variant
+          darkenColor(dominantHex, 0.5)   // Even darker variant
+        ];
 
-      return Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
-        timeDiff > 200;
-    },
-    onPanResponderMove: (_, gestureState) => {
-      if (gestureState.dy > 0) {
-        translateY.setValue(-SCREEN_HEIGHT + gestureState.dy);
-      }
-    },
-    onPanResponderRelease: (_, gestureState) => {
-      if (gestureState.dy > GESTURE_THRESHOLD) {
-        minimizePlayer();
-      } else {
-        maximizePlayer();
-      }
-    },
-  })).current;
-
-  // Animation controls
-  const minimizePlayer = () => {
-    if (isAnimating.current) return;
-    
-    isAnimating.current = true;
-    animationState.isMaximized = false;
-    
-    Animated.spring(translateY, {
-      toValue: 0,
-      useNativeDriver: true,
-      damping: 20,
-      mass: 0.8,
-    }).start(() => {
-      isAnimating.current = false;
-    });
-  };
-
-  const maximizePlayer = () => {
-    if (isAnimating.current) return;
-    
-    isAnimating.current = true;
-    animationState.isMaximized = true;
-    
-    Animated.spring(translateY, {
-      toValue: -SCREEN_HEIGHT,
-      useNativeDriver: true,
-      damping: 20,
-      mass: 0.8,
-    }).start(() => {
-      isAnimating.current = false;
-    });
-  };
-
-  const handleSeek = useCallback(async (value) => {
-    if (sound) {
-      const position = value * playerState.duration * 1000;
-      await sound.setPositionAsync(position);
-      setPlayerState((prev) => ({
-        ...prev,
-        progress: value,
-        currentTime: value * playerState.duration,
-      }));
+        setBackgroundColors(gradientColors);
+      };
+    } catch (error) {
+      console.error('Error extracting colors:', error);
     }
-  }, [sound, playerState.duration]);
+  };
 
+  // Utility function to convert RGB to Hex
+  const rgbToHex = (r: number, g: number, b: number): string => {
+    return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+  };
 
-  // Set up audio session at component mount
-  useEffect(() => {
-    const setupAudio = async () => {
-      try {
-        // Enable audio playback in silent mode (iOS)
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: true,
-          shouldDuckAndroid: true,
-          playThroughEarpieceAndroid: false,
-          allowsRecordingIOS: false,
-        });
-        console.log('Audio mode set successfully');
-      } catch (error) {
-        console.error('Error setting audio mode:', error);
-      }
-    };
+  // Utility function to darken a hex color
+  interface DarkenColor {
+    (hex: string, factor: number): string;
+  }
 
-    setupAudio();
+  const darkenColor: DarkenColor = (hex, factor) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+
+    return rgbToHex(
+      Math.max(0, Math.round(r * (1 - factor))),
+      Math.max(0, Math.round(g * (1 - factor))),
+      Math.max(0, Math.round(b * (1 - factor)))
+    );
+  };
+
+  const toggleFullscreen = useCallback((show: boolean) => {
+    if (show) {
+      translationY.value = withSpring(-SCREEN_HEIGHT, { damping: 20 });
+    } else {
+      translationY.value = withSpring(0, { damping: 20 });
+    }
+    setPlayerState(prev => ({ ...prev, isFullscreen: show }));
   }, []);
 
-  // Handlers
-  const togglePlayPause = useCallback(async () => {
-    if (sound) {
-      if (playerState.isPlaying) {
-        await sound.pauseAsync();
-      } else {
-        await sound.playAsync();
-      }
-      setPlayerState((prev) => ({ ...prev, isPlaying: !prev.isPlaying }));
-    }
-  }, [sound, playerState.isPlaying]);
+  // Reanimated values
+  const translationY = useSharedValue(0);
+  const isInteracting = useSharedValue(false);
 
-  const toggleLike = () => {
-    setPlayerState(prev => ({ ...prev, isLiked: !prev.isLiked }));
-  };
+  // Derived values
+  const currentTrackIndex = playlist.findIndex(track => track.id === currentTrack?.id);
 
-  const toggleRepeatMode = async () => {
-    const newRepeatMode = (playerState.repeatMode + 1) % 3;
-    setPlayerState(prev => ({ ...prev, repeatMode: newRepeatMode }));
-
-    if (sound) {
-      await sound.setIsLoopingAsync(newRepeatMode === 2); // Loop if repeatMode is 2 (repeat one)
-    }
-  };
-
-  const shufflePlaylist = (playlist: Track[]) => {
-    const shuffled = [...playlist];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  };
-
-  const toggleShuffle = () => {
-    const newShuffleState = !playerState.isShuffle;
-    setPlayerState(prev => ({ ...prev, isShuffle: newShuffleState }));
-  
-    if (newShuffleState) {
-      // Shuffle the playlist
-      const shuffled = shufflePlaylist(playlist); // Assuming `playlist` is your original playlist
-      setShuffledPlaylist(shuffled);
-  
-      // Find the index of the current track in the shuffled playlist
-      const currentIndex = shuffled.findIndex(track => track.id === currentTrack.id);
-      setCurrentTrackIndex(currentIndex);
-    } else {
-      // Revert to the original playlist
-      setShuffledPlaylist([]);
-  
-      // Find the index of the current track in the original playlist
-      const currentIndex = playlist.findIndex(track => track.id === currentTrack.id);
-      setCurrentTrackIndex(currentIndex);
-    }
-  };
-
-  const playNextTrack = async () => {
-    if (playerState.isShuffle && shuffledPlaylist.length > 0) {
-      const nextIndex = (currentTrackIndex + 1) % shuffledPlaylist.length;
-      setCurrentTrackIndex(nextIndex);
-      setCurrentTrack(shuffledPlaylist[nextIndex]);
-    } else {
-      const nextIndex = (currentTrackIndex + 1) % playlist.length;
-      setCurrentTrackIndex(nextIndex);
-      setCurrentTrack(playlist[nextIndex]);
-    }
-  };
-  
-  const playPreviousTrack = async () => {
-    if (playerState.isShuffle && shuffledPlaylist.length > 0) {
-      const prevIndex = (currentTrackIndex - 1 + shuffledPlaylist.length) % shuffledPlaylist.length;
-      setCurrentTrackIndex(prevIndex);
-      setCurrentTrack(shuffledPlaylist[prevIndex]);
-    } else {
-      const prevIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
-      setCurrentTrackIndex(prevIndex);
-      setCurrentTrack(playlist[prevIndex]);
-    }
-  };
-
-  // Handle track changes and loading
-  useEffect(() => {
+  // Audio management
+  const loadSound = useCallback(async () => {
     if (!currentTrack) return;
-  
-    const playCurrentTrack = async () => {
-      try {
-        setIsLoading(true);
-        
-        if (sound) {
-          await sound.unloadAsync(); // Unload previous sound
-        }
-  
-        console.log('Loading audio:', currentTrack.path);
-        
-        // Create the sound object
-        const { sound: newSound, status } = await Audio.Sound.createAsync(
-          { uri: currentTrack.path },
-          { 
-            shouldPlay: true,
-            progressUpdateIntervalMillis: 500, // Update progress every 500ms
-            positionMillis: 0,
-            volume: playerState.volume,
-          },
-          (status) => {
-            // This is the status update callback
-            if (status.isLoaded) {
-              setPlayerState((prev) => ({
-                ...prev,
-                progress: status.positionMillis / status.durationMillis,
-                currentTime: status.positionMillis / 1000,
-                isPlaying: status.isPlaying,
-              }));
-            }
-            
-            // Handle playback finished
-            if (status.didJustFinish && !status.isLooping) {
-              // Play next track based on repeat mode
-              if (playerState.repeatMode === 1) { // repeat all
-                playNextTrack();
-              } else if (playerState.repeatMode === 0 && 
-                ((playerState.isShuffle && currentTrackIndex < shuffledPlaylist.length - 1) || 
-                (!playerState.isShuffle && currentTrackIndex < playlist.length - 1))) {
-                // Only play next if not on last track and repeat is off
-                playNextTrack();
-              }
+
+    try {
+      setIsLoading(true);
+
+      // Unload previous sound if exists
+      if (sound) {
+        await sound.unloadAsync();
+      }
+
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: currentTrack.path },
+        { shouldPlay: true, progressUpdateIntervalMillis: 500 },
+        (status) => {
+          if (status.isLoaded) {
+            setPlayerState(prev => ({
+              ...prev,
+              progress: status.durationMillis ? status.positionMillis / status.durationMillis : 0,
+              currentTime: status.positionMillis / 1000,
+              isPlaying: status.isPlaying,
+              duration: status.durationMillis ? status.durationMillis / 1000 : 0,
+            }));
+
+            if (status.didJustFinish) {
+              handleTrackEnd();
             }
           }
-        );
-  
-        console.log('Audio loaded with status:', status);
-  
-        if (status.isLoaded) {
-          const durationInSeconds = status.durationMillis / 1000; // Convert milliseconds to seconds
-          console.log('Audio duration:', durationInSeconds);
-  
-          // Update the state with the duration and indicate that we're playing
-          setPlayerState((prev) => ({
-            ...prev,
-            duration: durationInSeconds,
-            isPlaying: true,
-            currentTime: 0,
-            progress: 0,
-          }));
         }
-  
-        setSound(newSound);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error loading or playing audio:', error);
-        setIsLoading(false);
-        // Reset playing state on error
-        setPlayerState(prev => ({
-          ...prev,
-          isPlaying: false
-        }));
+      );
+
+      setSound(newSound);
+    } catch (error) {
+      console.error('Failed to load sound', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentTrack]);
+
+  const handleTrackEnd = useCallback(() => {
+    if (playerState.repeatMode === 2) {
+      sound?.replayAsync();
+    } else {
+      playNextTrack();
+    }
+  }, [playerState.repeatMode, sound]);
+
+  const togglePlayPause = useCallback(async () => {
+    if (!sound) return;
+
+    if (playerState.isPlaying) {
+      await sound.pauseAsync();
+    } else {
+      await sound.playAsync();
+    }
+
+    setPlayerState(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
+  }, [sound, playerState.isPlaying]);
+
+  const playNextTrack = useCallback(() => {
+    console.log('playNextTrack', playlist.length, currentTrackIndex);
+    if (!playlist.length) return;
+
+    const nextIndex = (currentTrackIndex + 1) % playlist.length;
+    setCurrentTrack(playlist[nextIndex]);
+  }, [currentTrackIndex, playlist]);
+
+  const playPreviousTrack = useCallback(() => {
+    if (!playlist.length) return;
+
+    const prevIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
+    setCurrentTrack(playlist[prevIndex]);
+  }, [currentTrackIndex, playlist]);
+
+  const handleSeek = useCallback(async (value: number) => {
+    if (!sound) return;
+
+    const position = value * playerState.duration * 1000;
+    await sound.setPositionAsync(position);
+  }, [sound, playerState.duration]);
+
+  const toggleShuffle = useCallback(() => {
+    setPlayerState(prev => ({ ...prev, isShuffle: !prev.isShuffle }));
+  }, []);
+
+  const toggleRepeat = useCallback(() => {
+    const nextMode = (playerState.repeatMode + 1) % 3;
+    setPlayerState(prev => ({ ...prev, repeatMode: nextMode }));
+
+    if (sound) {
+      sound.setIsLoopingAsync(nextMode === 2);
+    }
+  }, [playerState.repeatMode, sound]);
+
+  // Gesture handlers
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      isInteracting.value = true;
+    })
+    .onUpdate((e) => {
+      if (e.translationY > 0) {
+        translationY.value = e.translationY;
       }
-    };
-  
-    playCurrentTrack();
-  
+    })
+    .onEnd((e) => {
+      if (e.translationY > GESTURE_THRESHOLD) {
+        runOnJS(toggleFullscreen)(false);
+      } else {
+        runOnJS(toggleFullscreen)(true);
+      }
+      isInteracting.value = false;
+    });
+
+  // Animation styles
+  const fullPlayerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: withTiming(playerState.isFullscreen ? 0 : SCREEN_HEIGHT) }],
+    opacity: playerState.isFullscreen ? 1 : 0,
+  }));
+
+  const miniPlayerStyle = useAnimatedStyle(() => ({
+    opacity: playerState.isFullscreen ? 0 : 1,
+    transform: [{ translateY: playerState.isFullscreen ? 20 : 0 }],
+  }));
+
+  // Effects
+  useEffect(() => {
+    loadSound();
+
     return () => {
-      if (sound) {
-        console.log('unloading sound');
-        sound.unloadAsync(); // Cleanup on unmount
-      }
+      sound?.unloadAsync();
     };
   }, [currentTrack]);
+
+  useEffect(() => {
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      staysActiveInBackground: true,
+      playsInSilentModeIOS: true,
+      shouldDuckAndroid: true,
+    });
+  }, []);
 
   if (!currentTrack) {
     return null;
   }
 
-  // Mini Player Component
-  const MiniPlayer = React.memo(() => (
-    <Animated.View style={[styles.miniPlayer, { opacity: miniPlayerOpacity }]}>
-      <BlurView intensity={80} tint="dark" style={styles.miniPlayerContent}>
-        <TouchableOpacity
-          onPress={maximizePlayer}
-          style={styles.miniPlayerLeft}
-          activeOpacity={0.7}
-        >
-          <Animated.Image
-            source={{ uri: currentTrack.artworkPath }}
-            style={[styles.miniPlayerArtwork]}
-          />
-          <View style={styles.miniPlayerInfo}>
-            <Text style={styles.miniPlayerTitle} numberOfLines={1}>
-              {currentTrack.title}
-            </Text>
-            <Text style={styles.miniPlayerArtist} numberOfLines={1}>
-              {currentTrack.artist}
-            </Text>
-          </View>
-        </TouchableOpacity>
-
-        <View style={styles.miniPlayerControls}>
-          {isLoading ? (
-            <ActivityIndicator size="small" color="#FF2D55" />
-          ) : (
-            <TouchableOpacity
-              onPress={togglePlayPause}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons
-                name={playerState.isPlaying ? "pause-circle" : "play-circle"}
-                size={32}
-                color="#FF2D55"
-              />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={styles.miniPlayerNext}
-            onPress={playNextTrack}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="play-skip-forward" size={24} color="#FFF" />
-          </TouchableOpacity>
-        </View>
-      </BlurView>
-      <View style={styles.miniProgressBar}>
-        <Animated.View
-          style={[
-            styles.miniProgressIndicator,
-            { width: `${playerState.progress * 100}%` }
-          ]}
-        />
-      </View>
-    </Animated.View>
-  ));
-
-  // Main Player Component
-  const MainPlayer = React.memo(() => (
-    <Animated.View
-      style={[
-        styles.fullPlayer,
-        {
-          opacity: fullPlayerOpacity,
-          transform: [{ translateY }],
-          paddingTop: insets.top,
-          paddingBottom: insets.bottom,
-        }
-      ]}
-      {...panResponder.panHandlers}
-    >
-      <SafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={minimizePlayer}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="chevron-down" size={28} color="#FFF" />
-          </TouchableOpacity>
-          <View style={styles.headerMiddle}>
-            <Text style={styles.headerTitle}>Playing from</Text>
-            <Text style={styles.headerSubtitle}>{currentTrack.album}</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => setPlayerState(prev => ({
-              ...prev,
-              queueVisible: !prev.queueVisible
-            }))}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="list" size={24} color="#FFF" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Artwork */}
-        <Animated.View
-          style={[
-            styles.artworkContainer,
-            { transform: [{ scale: artworkScale }] }
-          ]}
-        >
-          <Image
-            source={{ uri: currentTrack.artworkPath }}
-            style={styles.artwork}
-          />
-          
-          {/* Loading indicator over artwork when loading */}
-          {isLoading && (
-            <View style={styles.loaderOverlay}>
-              <ActivityIndicator size="large" color="#FF2D55" />
-            </View>
-          )}
-        </Animated.View>
-
-        {/* Track Info */}
-        <View style={styles.trackInfo}>
-          <View style={styles.titleContainer}>
-            <View style={styles.titleText}>
-              <Text style={styles.title} numberOfLines={1}>
-                {currentTrack.title}
-              </Text>
-              <Text style={styles.artist} numberOfLines={1}>
-                {currentTrack.artist}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={toggleLike}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons
-                name={playerState.isLiked ? "heart" : "heart-outline"}
-                size={24}
-                color={playerState.isLiked ? "#FF2D55" : "#FFF"}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Progress Bar */}
-          <View style={styles.progressContainer}>
-            <Slider
-              style={styles.progressBar}
-              value={playerState.progress}
-              onSlidingComplete={handleSeek}
-              minimumValue={0}
-              maximumValue={1}
-              minimumTrackTintColor="white"
-              maximumTrackTintColor="grey"
-              thumbTintColor="white"
-              disabled={isLoading}
-            />
-            <View style={styles.timeContainer}>
-              <Text style={styles.timeText}>
-                {formatTime(playerState.currentTime)}
-              </Text>
-              <Text style={styles.timeText}>
-                {formatTime(playerState.duration)}
-              </Text>
-            </View>
-          </View>
-
-          {/* Main Controls */}
-          <View style={styles.controls}>
-            <TouchableOpacity
-              onPress={toggleShuffle}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              disabled={isLoading}
-            >
-              <Ionicons
-                name="shuffle"
-                size={24}
-                color={playerState.isShuffle ? "#FF2D55" : "#FFF"}
-                style={isLoading ? styles.disabledControl : {}}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              onPress={playPreviousTrack}
-              disabled={isLoading}
-            >
-              <Ionicons 
-                name="play-skip-back" 
-                size={35} 
-                color="#FFF" 
-                style={isLoading ? styles.disabledControl : {}}
-              />
-            </TouchableOpacity>
-
-            {isLoading ? (
-              <View style={styles.playButton}>
-                <ActivityIndicator size="large" color="#FFF" />
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.playButton}
-                onPress={togglePlayPause}
-              >
-                <Ionicons
-                  name={playerState.isPlaying ? "pause" : "play"}
-                  size={40}
-                  color="#FFF"
-                />
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              onPress={playNextTrack}
-              disabled={isLoading}
-            >
-              <Ionicons 
-                name="play-skip-forward" 
-                size={35} 
-                color="#FFF" 
-                style={isLoading ? styles.disabledControl : {}}
-              />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={toggleRepeatMode}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              disabled={isLoading}
-            >
-              <Ionicons
-                name={playerState.repeatMode === 2 ? "repeat-one" : "repeat"}
-                size={24}
-                color={playerState.repeatMode > 0 ? "#FF2D55" : "#FFF"}
-                style={isLoading ? styles.disabledControl : {}}
-              />
-            </TouchableOpacity>
-          </View>
-
-
-
-          {/* Bottom Controls */}
-          <View style={styles.bottomControls}>
-            <TouchableOpacity
-              style={styles.bottomButton}
-              onPress={() => setPlayerState(prev => ({
-                ...prev,
-                isLyricsVisible: !prev.isLyricsVisible
-              }))}
-              disabled={isLoading}
-            >
-              <Ionicons 
-                name="text" 
-                size={22} 
-                color="#FFF" 
-                style={isLoading ? styles.disabledControl : {}}
-              />
-              <Text style={styles.bottomButtonText}>Lyrics</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.bottomButton}
-              onPress={() => {/* Handle AirPlay */ }}
-              disabled={isLoading}
-            >
-              <Ionicons
-                name="map" // Use "cast" for both iOS and Android
-                size={22}
-                color="#FFF"
-                style={isLoading ? styles.disabledControl : {}}
-              />
-              <Text style={styles.bottomButtonText}>
-                {Platform.OS === 'ios' ? 'AirPlay' : 'Cast'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.bottomButton}
-              onPress={() => {/* Handle Queue */ }}
-              disabled={isLoading}
-            >
-              <Ionicons 
-                name="list" 
-                size={22} 
-                color="#FFF" 
-                style={isLoading ? styles.disabledControl : {}}
-              />
-              <Text style={styles.bottomButtonText}>Queue</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </SafeAreaView>
-    </Animated.View>
-  ));
-
   return (
     <>
-      <MiniPlayer />
-      <MainPlayer />
+      {/* Mini Player */}
+      <Animated.View style={[styles.miniPlayerContainer, miniPlayerStyle]}>
+        <MiniPlayer
+          track={currentTrack}
+          isPlaying={playerState.isPlaying}
+          progress={playerState.progress}
+          isLoading={isLoading}
+          onPress={() => toggleFullscreen(true)}
+          onPlayPause={togglePlayPause}
+          onNext={playNextTrack}
+        />
+      </Animated.View>
+
+      {/* Full Player */}
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={[styles.fullPlayerContainer, fullPlayerStyle]}>
+          <FullPlayer
+            track={currentTrack}
+            playerState={playerState}
+            isLoading={isLoading}
+            onSeek={handleSeek}
+            onPlayPause={togglePlayPause}
+            onNext={playNextTrack}
+            onPrevious={playPreviousTrack}
+            onShuffle={toggleShuffle}
+            onRepeat={toggleRepeat}
+            backgroundColors={backgroundColors}
+            onMinimize={() => setPlayerState(prev => ({ ...prev, isFullscreen: false }))}
+          />
+        </Animated.View>
+      </GestureDetector>
     </>
   );
 };
+
+// Mini Player Component
+const MiniPlayer = memo(({
+  track,
+  isPlaying,
+  progress,
+  isLoading,
+  onPress,
+  onPlayPause,
+  onNext,
+}: {
+  track: Track;
+  isPlaying: boolean;
+  progress: number;
+  isLoading: boolean;
+  onPress: () => void;
+  onPlayPause: () => void;
+  onNext: () => void;
+}) => (
+  <BlurView intensity={80} tint="dark" style={styles.miniPlayer}>
+    <TouchableOpacity onPress={onPress} style={styles.miniPlayerContent}>
+      <Image source={{ uri: track.artworkPath }} style={styles.miniPlayerArtwork} />
+      <View style={styles.miniPlayerInfo}>
+        <Text style={styles.miniPlayerTitle} numberOfLines={1}>{track.title}</Text>
+        <Text style={styles.miniPlayerArtist} numberOfLines={1}>{track.artist}</Text>
+      </View>
+    </TouchableOpacity>
+
+    <View style={styles.miniPlayerControls}>
+      {isLoading ? (
+        <ActivityIndicator size="small" color={colors.primary} />
+      ) : (
+        <>
+          <ControlButton
+            icon={isPlaying ? 'pause' : 'play'}
+            onPress={onPlayPause}
+            size={28}
+          />
+          <ControlButton icon="play-skip-forward" onPress={onNext} />
+        </>
+      )}
+    </View>
+
+    <View style={styles.miniProgressBar}>
+      <View style={[styles.miniProgressIndicator, { width: `${progress * 100}%` }]} />
+    </View>
+  </BlurView>
+));
+
+// Full Player Component
+const FullPlayer = memo(({
+  track,
+  playerState,
+  isLoading,
+  onSeek,
+  onPlayPause,
+  onNext,
+  onPrevious,
+  onShuffle,
+  onRepeat,
+  backgroundColors,
+  onMinimize,
+}: {
+  track: Track;
+  playerState: {
+    isPlaying: boolean;
+    isShuffle: boolean;
+    repeatMode: number;
+    progress: number;
+    isLiked: boolean;
+    currentTime: number;
+    duration: number;
+  };
+  isLoading: boolean;
+  backgroundColors: readonly [string, string, ...string[]];
+  onSeek: (value: number) => void;
+  onPlayPause: () => void;
+  onNext: () => void;
+  onPrevious: () => void;
+  onShuffle: () => void;
+  onRepeat: () => void;
+  onMinimize: () => void;
+}) => (
+  <ScreenWrapper style={styles.fullPlayer}>
+
+    <LinearGradient colors={backgroundColors} style={styles.lineargradientContainer}>
+      {/* Header */}
+      <View style={styles.header}>
+        <ControlButton icon="chevron-down" onPress={onMinimize} />
+        <View style={styles.headerMiddle}>
+          <Text style={styles.headerSubtitle}>Now Playing</Text>
+        </View>
+        <ControlButton icon="ellipsis-horizontal" onPress={() => { }} />
+      </View>
+
+      {/* Artwork */}
+      <View style={styles.artworkContainer}>
+        <Image source={{ uri: track.artworkPath }} style={styles.artwork} />
+        {isLoading && (
+          <View style={styles.loaderOverlay}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        )}
+      </View>
+
+      {/* Track Info */}
+      <View style={styles.trackInfo}>
+        <View style={styles.titleContainer}>
+          <View style={styles.titleText}>
+            <Text style={styles.title} numberOfLines={1}>{track.title}</Text>
+            <Text style={styles.artist} numberOfLines={1}>{track.artist}</Text>
+          </View>
+          <ControlButton
+            icon={playerState.isLiked ? 'heart' : 'heart-outline'}
+            onPress={() => { }}
+            active={playerState.isLiked}
+          />
+        </View>
+
+        {/* Progress Bar */}
+        <View style={styles.progressContainer}>
+          <Slider
+            value={playerState.progress}
+            onSlidingComplete={onSeek}
+            minimumValue={0}
+            maximumValue={1}
+            minimumTrackTintColor={colors.white}
+            maximumTrackTintColor={colors.green}
+            thumbTintColor={colors.white}
+            disabled={isLoading}
+          />
+          <View style={styles.timeContainer}>
+            <TimeDisplay time={playerState.currentTime} />
+            <TimeDisplay time={playerState.duration} />
+          </View>
+        </View>
+
+        {/* Controls */}
+        <View style={styles.controls}>
+          <ControlButton
+            icon="shuffle"
+            onPress={onShuffle}
+            active={playerState.isShuffle}
+            disabled={isLoading}
+          />
+          <ControlButton
+            icon="play-skip-back"
+            onPress={onPrevious}
+            disabled={isLoading}
+            size={32}
+          />
+          <TouchableOpacity
+            style={styles.playButton}
+            onPress={onPlayPause}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <Ionicons
+                name={playerState.isPlaying ? 'pause' : 'play'}
+                size={36}
+                color={colors.white}
+              />
+            )}
+          </TouchableOpacity>
+          <ControlButton
+            icon="play-skip-forward"
+            onPress={onNext}
+            disabled={isLoading}
+            size={32}
+          />
+          <ControlButton
+            icon={playerState.repeatMode === 2 ? 'repeat-one' : 'repeat'}
+            onPress={onRepeat}
+            active={playerState.repeatMode > 0}
+            disabled={isLoading}
+          />
+        </View>
+      </View>
+    </LinearGradient>
+  </ScreenWrapper>
+
+));
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
   },
-  miniPlayer: {
+  miniPlayerContainer: {
     position: 'absolute',
-    bottom: 84,
-    width: SCREEN_WIDTH - 16,
-    height: MINI_PLAYER_HEIGHT,
-    marginHorizontal: 8,
+    bottom: 80,
+    left: 8,
+    right: 8,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: 'rgba(40, 40, 40, 0.9)',
+    zIndex: 1000,
   },
-  miniPlayerContent: {
-    flex: 1,
+  miniPlayer: {
+    width: '100%',
+    height: MINI_PLAYER_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
   },
-  miniPlayerLeft: {
+  fullPlayerContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.black,
+    zIndex: 999,
+  },
+  playButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  disabledControl: {
+    opacity: 0.5,
+  },
+  miniPlayerContent: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -678,40 +582,45 @@ const styles = StyleSheet.create({
   },
   miniPlayerInfo: {
     flex: 1,
-    marginRight: 12,
   },
   miniPlayerTitle: {
-    color: '#FFF',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
   miniPlayerArtist: {
-    color: '#999',
+    color: colors.green,
     fontSize: 14,
     marginTop: 2,
   },
   miniPlayerControls: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  miniProgressIndicator: {
-    height: 2,
-    backgroundColor: '#FF2D55', // More visible progress indicator
-    width: '0%', // Default width, will be dynamically updated
+    gap: 16,
   },
   miniProgressBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     height: 2,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
-  miniPlayerNext: {
-    marginLeft: 16,
+  miniProgressIndicator: {
+    height: 2,
+    backgroundColor: colors.primary,
   },
-  fullPlayer: {
+  lineargradientContainer: {
     position: 'absolute',
-    top: SCREEN_HEIGHT,
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
-    backgroundColor: '#000',
+    top: 0,
+    left: 0,
+    opacity: 0.8  // Slightly transparent for depth
+  },
+  fullPlayer: {
+    flex: 1,
+    paddingBottom: 32,
   },
   header: {
     flexDirection: 'row',
@@ -720,27 +629,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  bottomButtonText: {
-    color: colors.neutral600,
-    fontSize: 12,
-    marginTop: 4,
-  },
   headerMiddle: {
     alignItems: 'center',
   },
-  headerTitle: {
-    color: '#999',
-    fontSize: 12,
-  },
   headerSubtitle: {
-    color: '#FFF',
+    color: colors.white,
     fontSize: 14,
     fontWeight: '500',
   },
   artworkContainer: {
     paddingHorizontal: 24,
     marginTop: 32,
-    position: 'relative', // For loading overlay
+    position: 'relative',
   },
   artwork: {
     width: '100%',
@@ -748,11 +648,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   loaderOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 24, // Match the padding of the container
-    right: 24, // Match the padding of the container
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -774,25 +670,17 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   title: {
-    color: '#FFF',
+    color: colors.white,
     fontSize: 24,
     fontWeight: '600',
     marginBottom: 4,
   },
   artist: {
-    color: '#999',
+    color: colors.green,
     fontSize: 18,
   },
   progressContainer: {
     marginVertical: 16,
-  },
-  volumeSlider: {
-    width: '100%',
-    height: 40,
-  },
-  progressBar: {
-    width: '100%',
-    height: 40,
   },
   timeContainer: {
     flexDirection: 'row',
@@ -800,7 +688,7 @@ const styles = StyleSheet.create({
     marginTop: -12,
   },
   timeText: {
-    color: '#999',
+    color: colors.green,
     fontSize: 14,
   },
   controls: {
@@ -808,27 +696,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginVertical: 16,
-  },
-  playButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#FF2D55',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bottomControls: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    marginTop: 'auto',
-  },
-  bottomButton: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  disabledControl: {
-    opacity: 0.5,
   },
 });
 

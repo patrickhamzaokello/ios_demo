@@ -18,6 +18,7 @@ const Profile = () => {
     return (
         <ScreenWrapper>
             <Typo>Home</Typo>
+            
 
             <Button onPress={handlelogout}>
                 <Typo color={colors.black}>Logout</Typo>
