@@ -5,6 +5,7 @@ import { BottomTabBarProps, createBottomTabNavigator } from '@react-navigation/b
 import { colors, spacingY } from '@/constants/theme';
 import { verticalScale } from '@/utils/styling';
 import * as Icons from 'phosphor-react-native';
+import { Feather } from '@expo/vector-icons'; 
 import Typo from './Typo';
 
 

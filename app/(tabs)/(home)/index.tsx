@@ -3,12 +3,12 @@ import { useCallback } from 'react';
 import { RefreshControl } from 'react-native-gesture-handler';
 // import HeroSection  from '../../components/home/HeroSection';
 import { HeroSection } from '@/components/home/HeroSection';
-import { NewReleaseSection } from '../../components/home/NewReleaseSection';
-import { FeaturedArtistsSection } from '../../components/home/FeaturedArtistsSection';
-import { TrendingSection } from '../../components/home/TrendingSection';
-import { LoadingState } from '../../components/home/LoadingState';
-import { useHomeData } from '../../hooks/useHomeData';
-import { SliderSection } from '../../components/home/SliderSection';
+import { NewReleaseSection } from '../../../components/home/NewReleaseSection';
+import { FeaturedArtistsSection } from '../../../components/home/FeaturedArtistsSection';
+import { TrendingSection } from '../../../components/home/TrendingSection';
+import { LoadingState } from '../../../components/home/LoadingState';
+import { useHomeData } from '../../../hooks/useHomeData';
+import { SliderSection } from '../../../components/home/SliderSection';
 import ScreenWrapper from '@/components/ScreenWrapper'
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { CollectionSection } from '@/components/home/CollectionSection';
