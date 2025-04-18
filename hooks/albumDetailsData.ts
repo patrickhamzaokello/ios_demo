@@ -22,6 +22,7 @@ export function useAlbumDetailsData(id: string): UseAlbumDetailsData {
 
   const fetchData = async () => {
     try {
+      console.log(id)
       const response_data = await api_albumDetails(id);
 
       setData(response_data);
