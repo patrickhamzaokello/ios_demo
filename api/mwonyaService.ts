@@ -1,3 +1,4 @@
+import { AlbumDetailsResponse } from "@/types/album";
 import { MwonyaPlaylistDetailsResponse } from "@/types/playlist";
 import axiosInstance from "@/utils/apiUtils";
 
@@ -31,5 +32,17 @@ export const api_albumDetails = async (id: string): Promise<MwonyaPlaylistDetail
                 total_pages: 0,
                 total_results: 0,
         };
+    }
+};
+
+
+export const API_ContainerContentDetails = async (album_id: string): Promise<AlbumDetailsResponse> => {
+    try {
+        const response = await axiosInstance.post(`/selectedAlbum.php?albumID=${album_id}&page=1`);
+
+        return response.data;
+
+    } catch (error) {
+        return {page : 0, Album: [], total_pages: 0, total_results: 0};
     }
 };

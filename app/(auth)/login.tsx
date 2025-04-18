@@ -6,11 +6,11 @@ import { colors, spacingX, spacingY } from '@/constants/theme'
 import { verticalScale } from '@/utils/styling'
 import BackButton from '@/components/BackButton'
 import Input from '@/components/input'
-import * as Icons from 'phosphor-react-native'
 import Button from '@/components/Button'
 import { useRouter } from 'expo-router'
 import { api_login } from '@/api/authService';
 import { useAuth } from '@/contexts/authContext'
+import { AntDesign, Entypo, Feather } from '@expo/vector-icons'
 
 const Login = () => {
 
@@ -80,7 +80,7 @@ const Login = () => {
             inputMode='email'
             enterKeyHint='done'
             onChangeText={(value) => (emailRef.current = value)}
-            icon={<Icons.At size={verticalScale(26)} color={colors.neutral300} weight='fill' />}
+            icon={<AntDesign name='user' size={verticalScale(26)} color={colors.neutral300} weight='fill' />}
 
           />
 
@@ -89,7 +89,7 @@ const Login = () => {
             secureTextEntry
             enterKeyHint='done'
             onChangeText={(value) => (passWordRef.current = value)}
-            icon={<Icons.Lock size={verticalScale(26)} color={colors.neutral300} weight='fill' />}
+            icon={<Feather name='lock' size={verticalScale(26)} color={colors.neutral300} weight='fill' />}
 
           />
 

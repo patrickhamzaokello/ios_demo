@@ -4,52 +4,40 @@ import { Text, PlatformPressable } from '@react-navigation/elements';
 import { BottomTabBarProps, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { colors, spacingY } from '@/constants/theme';
 import { verticalScale } from '@/utils/styling';
-import * as Icons from 'phosphor-react-native';
-import { Feather } from '@expo/vector-icons'; 
 import Typo from './Typo';
+import Octicons from '@expo/vector-icons/Octicons';
 
 
 export default function CustomTabs({ state, descriptors, navigation }: BottomTabBarProps) {
 
     const tabbarIcons: any = {
-        index: (isFocused: boolean) => (
+        '(home)': (isFocused: boolean) => (
             <>
-                <Icons.House
-                    size={verticalScale(30)}
-                    weight={isFocused ? "fill" : "regular"}
-                    color={isFocused ? colors.primary : colors.neutral400}
-                />
+                <Octicons name='home' size={verticalScale(26)} color={isFocused ? colors.primary : colors.neutral400} />
 
                 <Typo size={10} color={isFocused ? colors.primary : colors.neutral400}>Home</Typo>
             </>
         ),
         search: (isFocused: boolean) => (
             <>
-                <Icons.MagnifyingGlass
-                    size={verticalScale(30)}
-                    weight={isFocused ? "fill" : "regular"}
-                    color={isFocused ? colors.primary : colors.neutral400}
-                />
+                <Octicons name='search' size={verticalScale(26)} color={isFocused ? colors.primary : colors.neutral400} />
+
                 <Typo size={10} color={isFocused ? colors.primary : colors.neutral400}>Search</Typo>
             </>
         ),
         library: (isFocused: boolean) => (
             <>
-                <Icons.ListHeart
-                    size={verticalScale(30)}
-                    weight={isFocused ? "fill" : "regular"}
-                    color={isFocused ? colors.primary : colors.neutral400}
-                />
+
+                <Octicons name='apps' size={verticalScale(26)} color={isFocused ? colors.primary : colors.neutral400} />
+
                 <Typo size={10} color={isFocused ? colors.primary : colors.neutral400}>Library</Typo>
             </>
         ),
         profile: (isFocused: boolean) => (
             <>
-                <Icons.User
-                    size={verticalScale(30)}
-                    weight={isFocused ? "fill" : "regular"}
-                    color={isFocused ? colors.primary : colors.neutral400}
-                />
+
+                <Octicons name='person' size={verticalScale(26)} color={isFocused ? colors.primary : colors.neutral400} />
+
                 <Typo size={10} color={isFocused ? colors.primary : colors.neutral400}>Profile</Typo>
             </>
         )
@@ -112,14 +100,18 @@ export default function CustomTabs({ state, descriptors, navigation }: BottomTab
 
 const styles = StyleSheet.create({
     tabbar: {
+        position: 'absolute',
+        bottom: 0,
         flexDirection: 'row',
         width: '100%',
-        height: Platform.OS == 'ios' ? verticalScale(73) : verticalScale(55),
         backgroundColor: colors.neutral900,
         justifyContent: "space-around",
         alignItems: "center",
         borderTopColor: colors.neutral800,
         borderTopWidth: 1,
+        paddingBottom: Platform.OS == 'ios' ? verticalScale(30) : verticalScale(25),
+        paddingTop:10,
+
     },
 
     tabbarItem: {

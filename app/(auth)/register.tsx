@@ -6,12 +6,12 @@ import { colors, spacingX, spacingY } from '@/constants/theme'
 import { verticalScale } from '@/utils/styling'
 import BackButton from '@/components/BackButton'
 import Input from '@/components/input'
-import * as Icons from 'phosphor-react-native'
 import Button from '@/components/Button'
 import { useRouter } from 'expo-router'
 import { generateUsername } from '@/utils/usernameGenerator'
 import { api_register } from '@/api/authService'
 import { useAuth } from '@/contexts/authContext'
+import { AntDesign, Feather, SimpleLineIcons } from '@expo/vector-icons'
 
 const Register = () => {
 
@@ -109,7 +109,7 @@ const Register = () => {
             inputMode='text'
             enterKeyHint='next'
             onChangeText={(value) => (fullNameRef.current = value)}
-            icon={<Icons.User size={verticalScale(26)} color={colors.neutral300} />}
+            icon={<AntDesign name='user' size={verticalScale(26)} color={colors.neutral300} />}
           />
 
           <Input
@@ -117,7 +117,7 @@ const Register = () => {
             inputMode="numeric"
             enterKeyHint='next'
             onChangeText={(value) => (user_phoneRef.current = value)}
-            icon={<Icons.PhoneCall size={verticalScale(26)} color={colors.neutral300} />}
+            icon={<SimpleLineIcons name='phone' size={verticalScale(26)} color={colors.neutral300} />}
           />
 
           <Input
@@ -125,7 +125,7 @@ const Register = () => {
             inputMode='email'
             enterKeyHint='done'
             onChangeText={(value) => (emailRef.current = value)}
-            icon={<Icons.At size={verticalScale(26)} color={colors.neutral300} />}
+            icon={<Feather name='mail' size={verticalScale(26)} color={colors.neutral300} />}
 
           />
 
@@ -134,7 +134,7 @@ const Register = () => {
             secureTextEntry
             enterKeyHint='done'
             onChangeText={(value) => (passWordRef.current = value)}
-            icon={<Icons.Lock size={verticalScale(26)} color={colors.neutral300} />}
+            icon={<Feather name='lock' size={verticalScale(26)} color={colors.neutral300} />}
 
           />
 

@@ -14,6 +14,7 @@ export default function TabsLayout() {
         tabBar={props => <CustomTabs {...props} />}
         screenOptions={{
           headerShown: false,
+          popToTopOnBlur: true,
           tabBarStyle: {
             backgroundColor: '#1F1F1F',
             borderTopColor: '#1F1F1F',
@@ -23,10 +24,10 @@ export default function TabsLayout() {
           }
         }}
       >
-        <Tabs.Screen name="index" />
+        <Tabs.Screen name="(home)" />
         <Tabs.Screen name="search" />
         <Tabs.Screen name="library" />
-        <Tabs.Screen name="profile" />
+        <Tabs.Screen name="profile"  />
       </Tabs>
   );
 }

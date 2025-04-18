@@ -23,7 +23,7 @@ export function NewReleaseSection({ data }: Props) {
             <AnimatedPressable 
              key={item.id} 
               style={styles.releaseItem}
-              onPress={() => router.push({ pathname: "/(content)/album", params: { id: item.id, playlistName: item.name } })}
+              onPress={() => router.push({ pathname: "/(tabs)/(home)/new_release", params: { releaseid: item.id, releaseTitle: item.title,releaseArtist: item.artist, releaseArtwork: item.artworkPath } })}
               entering={FadeInRight.delay(index * 100)}>
               <Image 
                 source={{ uri: item.artworkPath }}
