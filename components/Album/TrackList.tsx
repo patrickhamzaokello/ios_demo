@@ -2,20 +2,13 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors, fontSize, fontWeight, spacingX, spacingY } from '@/constants/theme';
 import { AntDesign, Entypo } from '@expo/vector-icons';
+import { Track } from '@/types/playlist';
 
-interface Track {
-  id: string;
-  title: string;
-  artist: string;
-  duration: string;
-  totalplays: number;
-  path: string;
-  date_duration?: string;
-}
+
 
 interface TrackListProps {
   tracks: Track[];
-  onPlayTrack?: (trackId: string) => void;
+  onPlayTrack?: (track: Track, index: number) => void;
 }
 
 const formatDuration = (seconds: string) => {
@@ -33,7 +26,7 @@ const TrackList: React.FC<TrackListProps> = ({ tracks, onPlayTrack }) => {
         <TouchableOpacity
           key={track.id}
           style={styles.trackItem}
-          onPress={() => onPlayTrack?.(track.id)}
+          onPress={() => onPlayTrack?.(track, index)}
           activeOpacity={0.7}
         >
           <View style={styles.trackNumberContainer}>

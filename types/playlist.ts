@@ -12,6 +12,7 @@ export interface Track {
     path: string;
     totalplays: number;
     albumID: string;
+    date_duration?: string | null;
   }
   
   export interface Playlist {

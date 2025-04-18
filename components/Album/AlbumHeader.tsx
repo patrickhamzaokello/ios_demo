@@ -27,6 +27,7 @@ interface AlbumHeaderProps {
     scrollY: Animated.SharedValue<number>;
     onBack?: () => void;
     onMore?: () => void;
+    onplayall?: () => void;
 }
 
 const AlbumHeader: React.FC<AlbumHeaderProps> = ({
@@ -39,7 +40,8 @@ const AlbumHeader: React.FC<AlbumHeaderProps> = ({
     description,
     scrollY,
     onBack,
-    onMore
+    onMore,
+    onplayall
 }) => {
     // Animation styles
     const headerAnimatedStyle = useAnimatedStyle(() => {
@@ -164,7 +166,7 @@ const AlbumHeader: React.FC<AlbumHeaderProps> = ({
 
     const navigationBarStyle = useAnimatedStyle(() => {
         return {
-            backgroundColor: scrollY.value > SCROLL_THRESHOLD * 0.8 ? colors.black : 'transparent',
+            backgroundColor: scrollY.value > SCROLL_THRESHOLD * 0.8 ? colors.matteBlack : 'transparent',
         };
     });
 
@@ -231,7 +233,7 @@ const AlbumHeader: React.FC<AlbumHeaderProps> = ({
                 </Animated.View>
 
                 <Animated.View style={[styles.actionButtons, actionsAnimatedStyle]}>
-                    <TouchableOpacity style={styles.playButton}>
+                    <TouchableOpacity style={styles.playButton} onPress={() => onplayall?.()}>
                         <Ionicons name="play" size={22} color={colors.black} />
                         <Text style={styles.playButtonText}>Play</Text>
                     </TouchableOpacity>
