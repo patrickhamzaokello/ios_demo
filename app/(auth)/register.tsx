@@ -101,7 +101,7 @@ const Register = () => {
         {/* form */}
 
         <View style={styles.form}>
-          <Typo size={16} color={colors.text}>Create an account to track your expenses</Typo>
+          <Typo size={16} color={colors.text}>Create a new Mwonya account</Typo>
 
           {/* input */}
           <Input

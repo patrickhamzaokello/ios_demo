@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "expense_app",
-    "slug": "expense_app",
+    "name": "Mwonya",
+    "slug": "Mwonya",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -24,7 +24,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "app.mwonya.com"
     },
     "web": {
       "bundler": "metro",
@@ -51,8 +52,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "ab3b2875-a9e1-4e36-8a35-0b2d850414a2"
+        "projectId": "d97b3726-8d1b-4259-88e9-dce65f334f78"
       }
-    }
+    },
+    "owner": "pkasemer"
   }
 }

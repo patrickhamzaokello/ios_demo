@@ -72,7 +72,7 @@ const ResetPassword = () => {
         {/* form */}
 
         <View style={styles.form}>
-          <Typo size={16} color={colors.text}>Login now to track all your expenses</Typo>
+          <Typo size={16} color={colors.text}>Login now into your mwonya account</Typo>
 
           {/* input */}
           <Input
