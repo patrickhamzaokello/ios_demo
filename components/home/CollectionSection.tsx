@@ -1,7 +1,10 @@
-import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import Animated, { FadeInRight } from 'react-native-reanimated';
-import type { Section, Release } from '../../types/home';
+import { View, Text, Image, StyleSheet, Pressable } from "react-native";
+import { Link, useRouter } from "expo-router";
+import Animated, { FadeInRight } from "react-native-reanimated";
+import type { Section, Release } from "../../types/home";
+import FastImage from "@d11/react-native-fast-image";
+import { unknownTrackImageUri } from "@/constants/images";
+import { colors, fontSize } from "@/constants/theme";
 
 interface Props {
   data: Section;
@@ -11,27 +14,41 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function CollectionSection({ data }: Props) {
   if (!data?.featuredAlbums) return null;
-const router = useRouter();
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>{data.heading}</Text>
       <Animated.ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}>
+        contentContainerStyle={styles.scrollContent}
+      >
         {data.featuredAlbums.map((item, index) => (
-            <AnimatedPressable 
+          <AnimatedPressable
             key={item.id}
-              style={styles.releaseItem}
-              onPress={() => router.push({ pathname: "/(content)/album", params: { id: item.id, playlistName: item.name } })}
-              entering={FadeInRight.delay(index * 100)}>
-              <Image 
-                source={{ uri: item.artworkPath }}
-                style={styles.artwork}
-              />
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.artist}>{item.artist}</Text>
-            </AnimatedPressable>
+            style={styles.releaseItem}
+            onPress={() =>
+              router.push({
+                pathname: "/(tabs)/(home)/new_release",
+                params: { releaseid: item.id },
+              })
+            }
+            entering={FadeInRight.delay(index * 100)}
+          >
+            <FastImage
+              source={{
+                uri: item.artworkPath ?? unknownTrackImageUri,
+                priority: FastImage.priority.normal,
+              }}
+              style={styles.artwork}
+              resizeMode="cover"
+            />
+            <Text style={styles.title} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <Text style={styles.artist}>{item.artist}</Text>
+          </AnimatedPressable>
         ))}
       </Animated.ScrollView>
     </View>
@@ -44,8 +61,8 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
     paddingHorizontal: 16,
     marginBottom: 16,
   },
@@ -53,7 +70,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   releaseItem: {
-    marginRight: 16,
+    marginRight: 24,
     width: 150,
   },
   artwork: {
@@ -62,15 +79,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   title: {
-    color: '#FFFFFF',
-    marginTop: 8,
-    fontWeight: '500',
+    color: "#FFFFFF",
+    fontSize: fontSize.lg,
+    marginTop: 10,
+    fontWeight: "500",
   },
   artist: {
-    color: '#CBD5E0',
+    marginTop: 5,
+    fontSize: fontSize.md,
+    color: colors.neutral500,
   },
   tag: {
-    color: '#A0AEC0',
+    color: "#A0AEC0",
     fontSize: 14,
   },
 });

@@ -7,11 +7,7 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
-import { TouchableOpacity } from "react-native-gesture-handler";
-import { Ionicons } from "@expo/vector-icons";
 
-import AlbumHeader from "./AlbumHeader";
-import RelatedAlbums from "./RelatedAlbums";
 import { TracksList } from "../TracksList";
 import { generateTracksListId } from "@/helpers/miscellaneous";
 import { trackTitleFilter } from "@/helpers/filter";
@@ -22,21 +18,20 @@ import { unknownTrackImageUri } from "@/constants/images";
 import { colors } from "@/constants/theme";
 import BackButton from "../BackButton";
 import MoreButton from "../MoreButton";
+import { MwonyaPlaylistDetailsResponse } from "@/types/playlist";
 
 const { width } = Dimensions.get("window");
 export const ALBUM_ART_SIZE = width * 0.65;
 
-interface AlbumDetailsProps {
-  data: any;
+interface PlaylistDetailsProps {
+  data: MwonyaPlaylistDetailsResponse;
   goBack: () => void;
   goMore: () => void;
 }
 
-const Album: React.FC<AlbumDetailsProps> = ({ data, goBack, goMore }) => {
-  const albumData = data?.Album?.[0] || {};
-  const tracksData = data?.Album?.[1]?.Tracks || [];
-  const relatedAlbums = data?.Album?.[2]?.ArtistAlbum || [];
-  const credits = data?.Album?.[3] || {};
+const PlaylistDetails: React.FC<PlaylistDetailsProps> = ({ data, goBack, goMore }) => {
+  const playlistData = data?.Playlists?.[0] || {};
+  const tracksData = data?.Playlists?.[1]?.Tracks || [];
 
   const search = useNavigationSearch({
     searchBarOptions: {
@@ -70,10 +65,10 @@ const Album: React.FC<AlbumDetailsProps> = ({ data, goBack, goMore }) => {
 
             <View style={styles.titleContainer}>
               <Text style={styles.title} numberOfLines={1}>
-                {albumData.title}
+                {playlistData.name}
               </Text>
               <Text style={styles.artist} numberOfLines={1}>
-                {albumData.artistName}
+                {playlistData.owner}
               </Text>
             </View>
 
@@ -84,37 +79,33 @@ const Album: React.FC<AlbumDetailsProps> = ({ data, goBack, goMore }) => {
           <View style={styles.artworkContainer}>
             <FastImage
               source={{
-                uri: albumData.artworkPath ?? unknownTrackImageUri,
+                uri: playlistData.cover ?? unknownTrackImageUri,
                 priority: FastImage.priority.normal,
               }}
               style={styles.artwork}
               resizeMode="cover"
             />
 
-            {albumData.exclusive && (
-              <View style={styles.exculsive}>
-                <Text numberOfLines={1}>Exclusive</Text>
-              </View>
-            )}
+        
           </View>
 
           {/* Album Details */}
           <View style={styles.detailsContainer}>
             <Text style={styles.titleText} numberOfLines={2}>
-              {albumData.title}
+              {playlistData.name}
             </Text>
 
-            <Text style={styles.artistText} numberOfLines={1}>
-              {albumData.artistName}
+            <Text style={styles.artistText} numberOfLines={3}>
+              {playlistData.description}
             </Text>
             <Text style={styles.infoText}>
-              {albumData.tag}• {albumData.genreName} •{" "}
-              {parseInt(albumData.tracks_count) || tracksData.length} Tracks
+              {'Playlist'} • {" "}
+              {playlistData.total || tracksData.length} Tracks
             </Text>
 
-            {albumData.description && (
+            {playlistData.owner && (
               <Text style={styles.description} numberOfLines={3}>
-                {albumData.description}
+                {playlistData.owner}
               </Text>
             )}
           </View>
@@ -130,19 +121,10 @@ const Album: React.FC<AlbumDetailsProps> = ({ data, goBack, goMore }) => {
           </View>
         )}
 
-        {relatedAlbums.length > 0 && (
-          <RelatedAlbums
-            title={data?.Album?.[2]?.heading || "More from this artist"}
-            albums={relatedAlbums}
-          />
-        )}
 
-        {credits?.description && (
           <View style={styles.credits}>
-            <Typo style={styles.creditsText}>{credits.description}</Typo>
             <Typo style={styles.creditsMwonyaText}>Mwonya Media Uganda</Typo>
           </View>
-        )}
       </ScrollView>
     </View>
   );
@@ -276,4 +258,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Album;
+export default PlaylistDetails;

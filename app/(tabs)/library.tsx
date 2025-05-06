@@ -3,16 +3,13 @@ import React from 'react'
 import { useLocalSearchParams } from 'expo-router';
 import ScreenWrapper from '@/components/ScreenWrapper';
 
-import { useAlbumDetailsData } from '@/hooks/albumDetailsData';
-import AlbumDetails from '@/components/Album';
 
 const Library = () => {
     const { id, playlistName } = useLocalSearchParams<{ id: string; playlistName: string; }>();
-   const { data, loading, error, refetch } = useAlbumDetailsData(id);
   return (
     <ScreenWrapper>
       <ScrollView>
-          <AlbumDetails playlistResponse={data}/>
+          {/* <AlbumDetails playlistResponse={data}/> */}
       </ScrollView>
     </ScreenWrapper>
   )

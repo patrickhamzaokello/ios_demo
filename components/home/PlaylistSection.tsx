@@ -1,7 +1,10 @@
-import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import Animated, { FadeInRight } from 'react-native-reanimated';
-import type { Section, Release } from '../../types/home';
+import { View, Text, Image, StyleSheet, Pressable } from "react-native";
+import { Link, useRouter } from "expo-router";
+import Animated, { FadeInRight } from "react-native-reanimated";
+import type { Section, Release } from "../../types/home";
+import FastImage from "@d11/react-native-fast-image";
+import { unknownTrackImageUri } from "@/constants/images";
+import { colors, fontSize } from "@/constants/theme";
 
 interface Props {
   data: Section;
@@ -18,21 +21,33 @@ export function PlaylistSection({ data }: Props) {
       <Animated.ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}>
+        contentContainerStyle={styles.scrollContent}
+      >
         {data.featuredPlaylists.map((item, index) => (
-            <AnimatedPressable 
+          <AnimatedPressable
             key={item.id}
-              style={styles.releaseItem}
-              onPress={() => router.push({ pathname: "/(content)/playlist", params: { id: item.id, playlistName: item.name } })}
-              entering={FadeInRight.delay(index * 100)}>
-              <Image 
-                source={{ uri: item.coverurl }}
-                style={styles.artwork}
-              />
-              <Text style={styles.title}>{item.name}</Text>
-              <Text style={styles.artist}>{item.owner}</Text>
-              <Text style={styles.tag}>{item.exclusive}</Text>
-            </AnimatedPressable>
+            style={styles.releaseItem}
+            onPress={() =>
+              router.push({
+                pathname: "/(tabs)/(home)/home_playlist_details",
+                params: { playlist_id: item.id },
+              })
+            }
+            entering={FadeInRight.delay(index * 100)}
+          >
+            <FastImage
+              source={{
+                uri: item.coverurl ?? unknownTrackImageUri,
+                priority: FastImage.priority.normal,
+              }}
+              style={styles.artwork}
+              resizeMode="cover"
+            />
+            <Text style={styles.title} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <Text style={styles.artist} numberOfLines={1}>{item.owner}</Text>
+          </AnimatedPressable>
         ))}
       </Animated.ScrollView>
     </View>
@@ -45,8 +60,8 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
     paddingHorizontal: 16,
     marginBottom: 16,
   },
@@ -63,15 +78,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   title: {
-    color: '#FFFFFF',
-    marginTop: 8,
-    fontWeight: '500',
+    color: "#FFFFFF",
+    fontSize: fontSize.lg,
+    marginTop: 10,
+    fontWeight: "500",
   },
   artist: {
-    color: '#CBD5E0',
+    marginTop: 5,
+    fontSize: fontSize.md,
+    color: colors.neutral500,
   },
   tag: {
-    color: '#A0AEC0',
+    color: "#A0AEC0",
     fontSize: 14,
   },
 });

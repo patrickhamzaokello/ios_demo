@@ -1,15 +1,25 @@
-import { View, Text, Image, StyleSheet, Pressable, Dimensions, TouchableOpacity } from 'react-native';
-import { Link } from 'expo-router';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  Pressable,
+  Dimensions,
+  TouchableOpacity,
+} from "react-native";
 import Animated, {
   FadeInRight,
   useAnimatedScrollHandler,
   useSharedValue,
   useAnimatedStyle,
   interpolate,
-} from 'react-native-reanimated';
-import type { Section } from '../../types/home';
+} from "react-native-reanimated";
+import type { Section } from "../../types/home";
+import { Link, useRouter } from "expo-router";
+import FastImage from "@d11/react-native-fast-image";
+import { unknownTrackImageUri } from "@/constants/images";
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.8;
 const CARD_HEIGHT = CARD_WIDTH * 0.5;
 const SPACING = 12;
@@ -29,7 +39,7 @@ export function SliderSection({ data }: Props) {
       scrollX.value = event.contentOffset.x;
     },
   });
-
+  const router = useRouter();
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>{data.heading}</Text>
@@ -54,14 +64,14 @@ export function SliderSection({ data }: Props) {
               scrollX.value,
               inputRange,
               [0.9, 1, 0.9],
-              'clamp'
+              "clamp"
             );
 
             const opacity = interpolate(
               scrollX.value,
               inputRange,
               [0.6, 1, 0.6],
-              'clamp'
+              "clamp"
             );
 
             return {
@@ -71,15 +81,22 @@ export function SliderSection({ data }: Props) {
           });
 
           return (
-
             <AnimatedPressable
-
               key={banner.id}
               style={[styles.card, animatedStyle]}
               entering={FadeInRight.delay(index * 100)}
+              onPress={() =>
+                router.push({
+                  pathname: "/(tabs)/(home)/home_playlist_details",
+                  params: { playlist_id: banner.playlistID },
+                })
+              }
             >
-              <Image
-                source={{ uri: banner.imagepath }}
+              <FastImage
+                source={{
+                  uri: banner.imagepath ?? unknownTrackImageUri,
+                  priority: FastImage.priority.normal,
+                }}
                 style={styles.image}
                 resizeMode="cover"
               />
@@ -97,8 +114,8 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
     paddingHorizontal: 16,
     marginBottom: 16,
   },
@@ -110,11 +127,11 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
     borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#1A1A1A',
+    overflow: "hidden",
+    backgroundColor: "#1A1A1A",
   },
   image: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
 });

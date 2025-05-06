@@ -12,7 +12,6 @@ import ScreenWrapper from '@/components/ScreenWrapper'
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { CollectionSection } from '@/components/home/CollectionSection';
 import { PlaylistSection } from '@/components/home/PlaylistSection';
-import { MoreLikeArtistSection } from '@/components/home/MoreLikeArtist';
 import { DJCollectionSection } from '@/components/home/DJCollectionSection';
 
 
@@ -30,7 +29,7 @@ export default function HomeScreen() {
             case 'artist':
                 return <FeaturedArtistsSection key={index} data={section} />;
             case 'artist_more_like':
-                return <MoreLikeArtistSection key={index} data={section} />;
+                return <FeaturedArtistsSection key={index} data={section} />;
             case 'trend':
                 return <TrendingSection key={index} data={section} />;
             case 'albums':
@@ -73,6 +72,8 @@ export default function HomeScreen() {
                     style={styles.container}
                     showsHorizontalScrollIndicator={false}
                     showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 200 }}
+                    
                     refreshControl={
                         <RefreshControl
                             refreshing={loading}

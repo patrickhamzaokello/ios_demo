@@ -6,21 +6,24 @@ import ScreenWrapper from '@/components/ScreenWrapper';
 import { useAlbumDetailsData } from '@/hooks/albumFixedData';
 import Album from '@/components/Album/index';
 import { colors, fontSize, fontWeight } from '@/constants/theme';
+import { usePlaylistDetailsData } from '@/hooks/playlistFixedData';
+import PlaylistDetails from '@/components/Playlist/PlaylistDetails';
 
-const AlbumScreen = () => {
-    const { releaseid } =
+const PlaylistScreen = () => {
+    const { playlist_id } =
         useLocalSearchParams<{
-            releaseid: string;
+            playlist_id: string;
         }>();
 
-    const { data, loading, error, refetch } = useAlbumDetailsData(releaseid);
+    const { data, loading, error, refetch } = usePlaylistDetailsData(playlist_id);
+
 
     if (loading) {
         return (
             <ScreenWrapper>
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={colors.primary} />
-                    <Text style={styles.loadingText}>Fetching new Release...</Text>
+                    <Text style={styles.loadingText}>Fetching playlist details...</Text>
                 </View>
             </ScreenWrapper>
         );
@@ -44,7 +47,7 @@ const AlbumScreen = () => {
 
     return (
         <ScreenWrapper>
-            <Album data={data} goBack={() => { }} goMore={() => {}} />
+            <PlaylistDetails data={data} goBack={() => { }} goMore={() => {}} />
         </ScreenWrapper>
     );
 };
@@ -80,4 +83,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default AlbumScreen;
+export default PlaylistScreen;
