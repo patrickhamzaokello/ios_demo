@@ -15,7 +15,7 @@ export type TracksListProps = Partial<FlatListProps<Track>> & {
 }
 
 const ItemDivider = () => (
-	<View style={{ ...utilsStyles.itemSeparator, marginVertical: 9, marginLeft: 60 }} />
+	<View style={{ ...utilsStyles.itemSeparator, marginVertical: 9, marginHorizontal: 20}} />
 )
 
 export const TracksList = ({
@@ -63,7 +63,7 @@ export const TracksList = ({
 	return (
 		<FlatList
 			data={tracks}
-			contentContainerStyle={{ paddingTop: 10, paddingBottom: 128 }}
+			contentContainerStyle={{ paddingTop: 10, paddingBottom: 20 }}
 			ListHeaderComponent={
 				!hideQueueControls ? (
 					<QueueControls tracks={tracks} style={{ paddingBottom: 20 }} />

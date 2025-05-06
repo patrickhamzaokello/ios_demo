@@ -6,18 +6,18 @@ import { verticalScale } from '@/utils/styling'
 import { colors, radius } from '@/constants/theme'
 import { Ionicons } from '@expo/vector-icons'
 
-const BackButton = ({
+const MoreButton = ({
     style, iconSize = 26
 }: BackButtonProps) => {
     const router = useRouter();
     return (
         <TouchableOpacity onPress={() => router.back()} style={[styles.button, style]}>
-           <Ionicons name="chevron-back" size={verticalScale(iconSize)} color={colors.white} weight="bold" />
+            <Ionicons name="ellipsis-horizontal" size={verticalScale(iconSize)} color="#fff" />
         </TouchableOpacity>
     )
 }
 
-export default BackButton
+export default MoreButton
 
 const styles = StyleSheet.create({
     button: {

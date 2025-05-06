@@ -1,27 +1,10 @@
-// AlbumHeader.js
-import React, { useEffect } from "react";
-import { View, Text, StyleSheet, Image, Platform, LayoutChangeEvent } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  interpolate,
-  Extrapolation,
-  withTiming,
-} from "react-native-reanimated";
+import React from "react";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
-import { unknownTrackImageUri } from "@/constants/images";
-import { utilsStyles } from "@/styles";
-
-// Import shared constants from Album.js
-import {
-  ALBUM_ART_MAX_SIZE,
-  ALBUM_ART_MIN_SIZE,
-  HEADER_MAX_HEIGHT,
-  HEADER_MIN_HEIGHT,
-  SCROLL_THRESHOLD,
-} from "./index";
 import FastImage from "@d11/react-native-fast-image";
+import { unknownTrackImageUri } from "@/constants/images";
+import { ALBUM_ART_SIZE } from "./index";
 
 interface AlbumHeaderProps {
   artwork: string;
@@ -30,10 +13,8 @@ interface AlbumHeaderProps {
   releaseDate: string;
   trackCount: number;
   description: string;
-  scrollY: Animated.SharedValue<number>;
   onBack?: () => void;
   onMore?: () => void;
-  onHeaderHeight?: (height: number) => void;
 }
 
 const AlbumHeader: React.FC<AlbumHeaderProps> = ({
@@ -43,187 +24,76 @@ const AlbumHeader: React.FC<AlbumHeaderProps> = ({
   releaseDate,
   trackCount,
   description,
-  scrollY,
   onBack,
   onMore,
-  onHeaderHeight,
 }) => {
-  // Animation states
-  const titleOpacity = useSharedValue(0);
-
-  const handleLayout = (event: LayoutChangeEvent) => {
-    onHeaderHeight?.(event.nativeEvent.layout.height);
-  };
-
-  // Show title animation after initial render
-  useEffect(() => {
-    titleOpacity.value = withTiming(1, { duration: 400 });
-  }, []);
-
-  // Animated styles for parallax and fade effects
-  const headerAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      height: interpolate(
-        scrollY.value,
-        [0, SCROLL_THRESHOLD],
-        [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
-        Extrapolation.CLAMP
-      ),
-      // Use position absolute to avoid layout issues with the scrollview content
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 10,
-    };
-  });
-
-  const artworkAnimatedStyle = useAnimatedStyle(() => {
-    const scale = interpolate(
-      scrollY.value,
-      [0, SCROLL_THRESHOLD],
-      [1, 0.5],
-      Extrapolation.CLAMP
-    );
-
-    const translateY = interpolate(
-      scrollY.value,
-      [0, SCROLL_THRESHOLD],
-      [0, -ALBUM_ART_MAX_SIZE * 0.3],
-      Extrapolation.CLAMP
-    );
-
-    const opacity = interpolate(
-      scrollY.value,
-      [0, SCROLL_THRESHOLD * 0.8, SCROLL_THRESHOLD],
-      [1, 0.8, 0],
-      Extrapolation.CLAMP
-    );
-
-    return {
-      transform: [{ scale }, { translateY }],
-      opacity,
-    };
-  });
-
-  const detailsAnimatedStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      scrollY.value,
-      [0, SCROLL_THRESHOLD * 0.7, SCROLL_THRESHOLD],
-      [1, 0.3, 0],
-      Extrapolation.CLAMP
-    );
-
-    const translateY = interpolate(
-      scrollY.value,
-      [0, SCROLL_THRESHOLD],
-      [0, -50],
-      Extrapolation.CLAMP
-    );
-
-    return {
-      opacity,
-      transform: [{ translateY }],
-    };
-  });
-
-  const collapsedHeaderStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      scrollY.value,
-      [SCROLL_THRESHOLD * 0.7, SCROLL_THRESHOLD],
-      [0, 1],
-      Extrapolation.CLAMP
-    );
-
-    return {
-      opacity,
-    };
-  });
-
-  // Animated text opacity based on scroll
-  const titleFadeStyle = useAnimatedStyle(() => {
-    return {
-      opacity: titleOpacity.value,
-    };
-  });
-
   return (
-    <Animated.View style={[styles.container, headerAnimatedStyle]} onLayout={handleLayout}>
+    <View style={styles.headerContainer}>
       {/* Navigation Bar */}
       <View style={styles.navBar}>
         <TouchableOpacity onPress={onBack} style={styles.navButton}>
           <Ionicons name="chevron-back" size={26} color="#fff" />
         </TouchableOpacity>
 
-        {/* Compact title for scrolled state */}
-        <Animated.View style={[styles.collapsedTitle, collapsedHeaderStyle]}>
-          <Text style={styles.collapsedTitleText} numberOfLines={1}>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title} numberOfLines={1}>
             {title}
           </Text>
-          <Text style={styles.collapsedArtistText} numberOfLines={1}>
+          <Text style={styles.artist} numberOfLines={1}>
             {artist}
           </Text>
-        </Animated.View>
+        </View>
 
         <TouchableOpacity onPress={onMore} style={styles.navButton}>
           <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
 
-      {/* Album artwork with shadow */}
-      <Animated.View style={[styles.artworkContainer, artworkAnimatedStyle]}>
+      {/* Album Artwork */}
+      <View style={styles.artworkContainer}>
         <FastImage
           source={{
             uri: artwork ?? unknownTrackImageUri,
             priority: FastImage.priority.normal,
           }}
-          style={{
-            ...styles.artwork_style,
-          }}
+          style={styles.artwork}
+           resizeMode="cover"
         />
-      </Animated.View>
+      </View>
 
-      {/* Album details */}
-      <Animated.View
-        style={[styles.detailsContainer, detailsAnimatedStyle, titleFadeStyle]}
-      >
-        <View style={styles.titleContainer}>
-          <Text style={styles.title} numberOfLines={2}>
-            {title}
-          </Text>
-          <Text style={styles.artist} numberOfLines={1}>
-            {artist}
-          </Text>
-          <Text style={styles.infoText}>
-            {releaseDate} • {trackCount} songs
-          </Text>
-        </View>
+      {/* Album Details */}
+      <View style={styles.detailsContainer}>
+        <Text style={styles.titleText} numberOfLines={2}>
+          {title}
+        </Text>
+        <Text style={styles.artistText} numberOfLines={1}>
+          {artist}
+        </Text>
+        <Text style={styles.infoText}>
+          {releaseDate} • {trackCount} songs
+        </Text>
 
-        {description ? (
+        {description && (
           <Text style={styles.description} numberOfLines={3}>
             {description}
           </Text>
-        ) : null}
-      </Animated.View>
-    </Animated.View>
+        )}
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    width: "100%",
-    overflow: "hidden",
-    backgroundColor: "red"
+  headerContainer: {
+    paddingBottom: 20,
   },
-
   navBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingTop: Platform.OS === "ios" ? 0 : 16,
     paddingHorizontal: 16,
-    height: 90, // Same as HEADER_MIN_HEIGHT
-    zIndex: 10,
+    height: 60,
   },
   navButton: {
     width: 40,
@@ -231,27 +101,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  collapsedTitle: {
+  titleContainer: {
     flex: 1,
-    alignItems: "center",
     paddingHorizontal: 10,
   },
-  collapsedTitleText: {
+  title: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#fff",
     textAlign: "center",
   },
-  collapsedArtistText: {
+  artist: {
     fontSize: 14,
     color: "rgba(255, 255, 255, 0.8)",
     textAlign: "center",
   },
   artworkContainer: {
-    width: ALBUM_ART_MAX_SIZE,
-    height: ALBUM_ART_MAX_SIZE,
+    width: ALBUM_ART_SIZE,
+    height: ALBUM_ART_SIZE,
     alignSelf: "center",
-    marginTop: 10,
+    marginTop: 20,
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -264,7 +133,7 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  artwork_style: {
+  artwork: {
     width: "100%",
     height: "100%",
     borderRadius: 8,
@@ -272,21 +141,16 @@ const styles = StyleSheet.create({
   detailsContainer: {
     paddingHorizontal: 24,
     paddingTop: 20,
-    paddingBottom: 16,
     alignItems: "center",
   },
-  titleContainer: {
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  title: {
+  titleText: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#fff",
     textAlign: "center",
     marginBottom: 6,
   },
-  artist: {
+  artistText: {
     fontSize: 18,
     color: "rgba(255, 255, 255, 0.9)",
     marginBottom: 8,
@@ -303,7 +167,7 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.7)",
     textAlign: "center",
     marginTop: 12,
-    marginBottom: 16,
+    paddingHorizontal: 20,
   },
 });
 

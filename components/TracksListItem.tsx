@@ -23,8 +23,8 @@ export const TracksListItem = ({
 	const isActiveTrack = useActiveTrack()?.url === track.url
 
 	return (
-		<TouchableHighlight onPress={() => handleTrackSelect(track)}>
-			<View style={styles.trackItemContainer}>
+		<TouchableHighlight onPress={() => handleTrackSelect(track)} underlayColor={colors.underlay}>
+			<View style={styles.trackItemContainer} >
 				<View>
 					<FastImage
 						source={{
@@ -63,7 +63,7 @@ export const TracksListItem = ({
 					}}
 				>
 					{/* Track title + artist */}
-					<View style={{ width: '100%' }}>
+					<View style={{ flex: 1 }}>
 						<Text
 							numberOfLines={1}
 							style={{
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		columnGap: 14,
 		alignItems: 'center',
-		paddingRight: 20,
+		paddingHorizontal: 20
 	},
 	trackPlayingIconIndicator: {
 		position: 'absolute',

@@ -23,7 +23,7 @@ export const QueueControls = ({ tracks, style, ...viewProps }: QueueControlsProp
 	}
 
 	return (
-		<View style={[{ flexDirection: 'row', columnGap: 16 }, style]} {...viewProps}>
+		<View style={[{ flexDirection: 'row', columnGap: 16 , paddingHorizontal: 20}, style]} {...viewProps}>
 			{/* Play button */}
 			<View style={{ flex: 1 }}>
 				<TouchableOpacity onPress={handlePlay} activeOpacity={0.8} style={styles.button}>
