@@ -1,7 +1,6 @@
 import { ScrollView, StyleSheet, View, Text } from 'react-native';
 import { useCallback } from 'react';
 import { RefreshControl } from 'react-native-gesture-handler';
-// import HeroSection  from '../../components/home/HeroSection';
 import { HeroSection } from '@/components/home/HeroSection';
 import { NewReleaseSection } from '../../../components/home/NewReleaseSection';
 import { FeaturedArtistsSection } from '../../../components/home/FeaturedArtistsSection';

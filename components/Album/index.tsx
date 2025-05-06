@@ -1,133 +1,198 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import React, { useEffect, useMemo } from "react";
+import { View, StyleSheet, Dimensions, Platform } from "react-native";
 import Animated, {
-    useSharedValue,
-    useAnimatedScrollHandler,
-    useAnimatedRef
-} from 'react-native-reanimated';
-import { colors, spacingY } from '@/constants/theme';
+  useSharedValue,
+  useAnimatedScrollHandler,
+  useAnimatedRef,
+  useAnimatedStyle,
+  interpolate,
+  Extrapolation,
+} from "react-native-reanimated";
 
-import AlbumHeader from './AlbumHeader';
-import TrackList from './TrackList';
-import RelatedAlbums from './RelatedAlbums';
-import { Track } from '@/types/playlist';
-import { usePlayer } from '@/providers/PlayerProvider';
+import AlbumHeader from "./AlbumHeader";
+import RelatedAlbums from "./RelatedAlbums";
+import { Track } from "@/types/playlist";
+import { TracksList } from "../TracksList";
+import { generateTracksListId } from "@/helpers/miscellaneous";
+import { trackTitleFilter } from "@/helpers/filter";
+import { useNavigationSearch } from "@/hooks/useNavigationSearch";
+import { colors, fontSize, fontWeight, spacingX, spacingY, borderRadius } from '@/constants/theme';
 
-interface AlbumDetailsProps {
-    data: any; // API response type
-    goBack: () => void;
-}
-
-// Get dynamic dimensions
+// Constants from AlbumHeader to keep in sync
 const { width } = Dimensions.get('window');
 const ALBUM_ART_MAX_SIZE = width * 0.65;
-const HEADER_MAX_HEIGHT = ALBUM_ART_MAX_SIZE + 200; // Same as in AlbumHeader
+const HEADER_MAX_HEIGHT = ALBUM_ART_MAX_SIZE + 180;
 const HEADER_MIN_HEIGHT = 90;
 
-const Album: React.FC<AlbumDetailsProps> = ({ data, goBack }) => {
-    const albumData = data?.Album?.[0] || {};
-    const tracksData = data?.Album?.[1]?.Tracks || [];
-    const relatedAlbums = data?.Album?.[2]?.ArtistAlbum || [];
-    const credits = data?.Album?.[3] || {};
-    const { playTrack, addToQueue } = usePlayer();
+interface AlbumDetailsProps {
+  data: any; // API response type
+  goBack: () => void;
+  goMore: () => void;
+}
 
-    const scrollY = useSharedValue(0);
-    const scrollRef = useAnimatedRef<Animated.ScrollView>();
+const Album: React.FC<AlbumDetailsProps> = ({ 
+  data, 
+  goBack, 
+  goMore,
+}) => {
+  const albumData = data?.Album?.[0] || {};
+  const tracksData = data?.Album?.[1]?.Tracks || [];
+  const relatedAlbums = data?.Album?.[2]?.ArtistAlbum || [];
+  const credits = data?.Album?.[3] || {};
 
-    const scrollHandler = useAnimatedScrollHandler((event) => {
-        scrollY.value = event.contentOffset.y;
-    });
+  const scrollY = useSharedValue(0);
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
 
-    const handlePlayTrack = (track: Track, index: number) => {
-        playTrack(track);
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
 
-        // Add the rest of the tracks to the queue
-        if (albumData?.Playlists?.[1]?.Tracks) {
-            addToQueue(albumData.Playlists[1].Tracks.slice(index + 1));
-        }
+  const search = useNavigationSearch({
+    searchBarOptions: {
+      placeholder: "Find in songs",
+    },
+  });
+  
+  // Format tracks data
+  const tracks = tracksData.map((track: any) => ({
+    ...track,
+    url: track.path, // Rename 'path' to 'url'
+    artwork: track.artworkPath, // Rename 'artworkPath' to 'artwork'
+  }));
 
-    };
+  const filteredTracks = useMemo(() => {
+    if (!search) return tracks;
+    return tracks.filter(trackTitleFilter(search));
+  }, [search, tracks]);
 
-    const handlePlayAll = () => {
-        if (!tracksData) return;
+  // Calculate proper release date format
+  const formattedReleaseDate = useMemo(() => {
+    if (!albumData.datecreated) return "";
+    
+    try {
+      const date = new Date(albumData.datecreated);
+      return date.getFullYear().toString();
+    } catch (error) {
+      return albumData.datecreated;
+    }
+  }, [albumData.datecreated]);
 
-        const tracks = tracksData;
-        if (tracks.length > 0) {
-            playTrack(tracks[0]);
-            addToQueue(tracks.slice(1));
-        }
-    };
-
-    return (
-        <View style={styles.container}>
-            <Animated.ScrollView
-                ref={scrollRef}
-                onScroll={scrollHandler}
-                scrollEventThrottle={16}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
-                {/* Empty View with height equal to HEADER_MAX_HEIGHT acts as spacing */}
-                <View style={{ height: HEADER_MAX_HEIGHT }} />
-
-                {/* Content always starts after the header */}
-                <View style={styles.contentContainer}>
-                    <TrackList tracks={tracksData} onPlayTrack={(track, index) => handlePlayTrack(track, index)} />
-
-                    {relatedAlbums.length > 0 && (
-                        <RelatedAlbums
-                            title={data?.Album?.[2]?.heading || "More from this artist"}
-                            albums={relatedAlbums}
-                        />
-                    )}
-
-                    {credits?.description && (
-                        <View style={styles.credits}>
-                            <Animated.Text style={styles.creditsText}>
-                                {credits.description}
-                            </Animated.Text>
-                        </View>
-                    )}
-                </View>
-            </Animated.ScrollView>
-
-            {/* Header is placed above the ScrollView in the component tree but appears visually on top due to zIndex */}
-            <AlbumHeader
-                artwork={albumData.artworkPath}
-                title={albumData.title}
-                artist={albumData.artistName}
-                releaseDate={albumData.datecreated}
-                trackCount={albumData.tracks_count}
-                totalPlays={albumData.totaltrackplays}
-                description={albumData.description}
-                scrollY={scrollY}
-                onBack={goBack}
-                onplayall={handlePlayAll}
-            />
-        </View>
+  // Animation for content container to maintain proper spacing
+  const contentContainerStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(
+      scrollY.value,
+      [0, HEADER_MAX_HEIGHT],
+      [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
+      Extrapolation.CLAMP
     );
+
+    return {
+      transform: [{ translateY: -HEADER_MAX_HEIGHT + translateY }],
+    };
+  });
+
+  return (
+    <View style={styles.container}>
+      <AlbumHeader
+        artwork={albumData.artworkPath}
+        title={albumData.title}
+        artist={albumData.artistName}
+        releaseDate={formattedReleaseDate}
+        trackCount={parseInt(albumData.tracks_count) || tracksData.length}
+        description={albumData.description}
+        scrollY={scrollY}
+        onBack={goBack}
+        onMore={goMore}
+      />
+
+      <Animated.ScrollView
+        ref={scrollRef}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: HEADER_MAX_HEIGHT } // Add padding equal to header height
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View style={[styles.contentContainer, contentContainerStyle]}>
+          {/* Tracks List */}
+          {filteredTracks.length > 0 && (
+            <View style={styles.tracksContainer}>
+              <TracksList
+                id={generateTracksListId("songs", search)}
+                tracks={filteredTracks}
+                scrollEnabled={false}
+                style={styles.tracksList}
+              />
+            </View>
+          )}
+
+          {/* Related Albums */}
+          {relatedAlbums.length > 0 && (
+            <RelatedAlbums
+              title={data?.Album?.[2]?.heading || "More from this artist"}
+              albums={relatedAlbums}
+            />
+          )}
+
+          {/* Credits */}
+          {credits?.description && (
+            <View style={styles.credits}>
+              <Animated.Text style={styles.creditsText}>
+                {credits.description}
+              </Animated.Text>
+            </View>
+          )}
+        </Animated.View>
+      </Animated.ScrollView>
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
+  container: {
+    flex: 1,
+    backgroundColor: '#000', // Match with header background
+  },
+  scrollContent: {
+    // Padding bottom accounts for tab bar or player
+    paddingBottom: spacingY._40 + (Platform.OS === 'ios' ? 80 : 60),
+  },
+  contentContainer: {
+    backgroundColor: '#121212', // Apple Music-like dark background
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingTop: spacingY._20,
+    // Move content up to overlap with header
+    marginTop: -20,
+    // Add shadow to create depth
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -3,
     },
-    scrollContent: {
-        paddingBottom: spacingY._40,
-    },
-    contentContainer: {
-        paddingTop: spacingY._17,
-    },
-    credits: {
-        paddingHorizontal: 20,
-        marginVertical: spacingY._30,
-        alignItems: 'center',
-    },
-    creditsText: {
-        color: colors.primary,
-        textAlign: 'center',
-        fontSize: 12,
-    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 6,
+  },
+  tracksContainer: {
+    marginBottom: spacingY._25,
+  },
+  tracksList: {
+    paddingHorizontal: spacingX._15,
+  },
+  credits: {
+    paddingHorizontal: spacingX._20,
+    marginVertical: spacingY._30,
+    alignItems: "center",
+  },
+  creditsText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: "center",
+    fontSize: fontSize.sm,
+    lineHeight: 18,
+  },
 });
 
 export default Album;

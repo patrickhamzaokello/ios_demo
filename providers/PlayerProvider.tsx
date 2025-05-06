@@ -1,6 +1,6 @@
 import React, { createContext, PropsWithChildren, useContext, useState, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
-import PlayerScreen from '../components/player/PlayerScreen';
+import PlayerScreen from '../app/player';
 import { Track } from '@/types/playlist';
 // import { Track } from '../types'; // Define your Track type
 
