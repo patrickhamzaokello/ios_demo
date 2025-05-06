@@ -1,28 +1,25 @@
+// Album.js
 import React, { useEffect, useMemo } from "react";
 import { View, StyleSheet, Dimensions, Platform } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedScrollHandler,
   useAnimatedRef,
-  useAnimatedStyle,
-  interpolate,
-  Extrapolation,
 } from "react-native-reanimated";
+import { debounce } from "lodash";
 
 import AlbumHeader from "./AlbumHeader";
 import RelatedAlbums from "./RelatedAlbums";
-import { Track } from "@/types/playlist";
 import { TracksList } from "../TracksList";
 import { generateTracksListId } from "@/helpers/miscellaneous";
 import { trackTitleFilter } from "@/helpers/filter";
 import { useNavigationSearch } from "@/hooks/useNavigationSearch";
-import { colors, fontSize, fontWeight, spacingX, spacingY, borderRadius } from '@/constants/theme';
 
-// Constants from AlbumHeader to keep in sync
-const { width } = Dimensions.get('window');
-const ALBUM_ART_MAX_SIZE = width * 0.65;
-const HEADER_MAX_HEIGHT = ALBUM_ART_MAX_SIZE + 180;
-const HEADER_MIN_HEIGHT = 90;
+// Shared constants - moved to a single location to ensure consistency
+const { width } = Dimensions.get("window");
+export const ALBUM_ART_MAX_SIZE = width * 0.65;
+export const ALBUM_ART_MIN_SIZE = 45;
+export const HEADER_MIN_HEIGHT = 70;
 
 interface AlbumDetailsProps {
   data: any; // API response type
@@ -30,17 +27,16 @@ interface AlbumDetailsProps {
   goMore: () => void;
 }
 
-const Album: React.FC<AlbumDetailsProps> = ({ 
-  data, 
-  goBack, 
-  goMore,
-}) => {
+const Album: React.FC<AlbumDetailsProps> = ({ data, goBack, goMore }) => {
   const albumData = data?.Album?.[0] || {};
   const tracksData = data?.Album?.[1]?.Tracks || [];
   const relatedAlbums = data?.Album?.[2]?.ArtistAlbum || [];
   const credits = data?.Album?.[3] || {};
 
+  // Shared animated values for the header and scroll view
   const scrollY = useSharedValue(0);
+  const headerMaxHeight = useSharedValue(0);
+  const scrollThreshold = useSharedValue(0);
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
 
   const scrollHandler = useAnimatedScrollHandler((event) => {
@@ -52,12 +48,12 @@ const Album: React.FC<AlbumDetailsProps> = ({
       placeholder: "Find in songs",
     },
   });
-  
+
   // Format tracks data
   const tracks = tracksData.map((track: any) => ({
     ...track,
-    url: track.path, // Rename 'path' to 'url'
-    artwork: track.artworkPath, // Rename 'artworkPath' to 'artwork'
+    url: track.path,
+    artwork: track.artworkPath,
   }));
 
   const filteredTracks = useMemo(() => {
@@ -68,7 +64,7 @@ const Album: React.FC<AlbumDetailsProps> = ({
   // Calculate proper release date format
   const formattedReleaseDate = useMemo(() => {
     if (!albumData.datecreated) return "";
-    
+
     try {
       const date = new Date(albumData.datecreated);
       return date.getFullYear().toString();
@@ -77,19 +73,14 @@ const Album: React.FC<AlbumDetailsProps> = ({
     }
   }, [albumData.datecreated]);
 
-  // Animation for content container to maintain proper spacing
-  const contentContainerStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(
-      scrollY.value,
-      [0, HEADER_MAX_HEIGHT],
-      [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
-      Extrapolation.CLAMP
-    );
-
-    return {
-      transform: [{ translateY: -HEADER_MAX_HEIGHT + translateY }],
-    };
-  });
+  // Debounce header height updates
+  const handleHeaderHeight = useMemo(
+    () => debounce((height: number) => {
+      // No need to keep a separate state since we're using a shared value
+      console.log("Header height updated:", height);
+    }, 50),
+    []
+  );
 
   return (
     <View style={styles.container}>
@@ -101,21 +92,28 @@ const Album: React.FC<AlbumDetailsProps> = ({
         trackCount={parseInt(albumData.tracks_count) || tracksData.length}
         description={albumData.description}
         scrollY={scrollY}
+        headerMaxHeight={headerMaxHeight}
+        scrollThreshold={scrollThreshold}
         onBack={goBack}
         onMore={goMore}
+        onHeaderHeight={handleHeaderHeight}
       />
 
       <Animated.ScrollView
         ref={scrollRef}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: HEADER_MAX_HEIGHT } // Add padding equal to header height
-        ]}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View style={[styles.contentContainer, contentContainerStyle]}>
+        {/* We're adding this spacer with exact header max height for content positioning */}
+        <Animated.View 
+          style={{
+            height: headerMaxHeight,
+          }}
+        />
+
+        <View style={styles.contentContainer}>
           {/* Tracks List */}
           {filteredTracks.length > 0 && (
             <View style={styles.tracksContainer}>
@@ -144,7 +142,7 @@ const Album: React.FC<AlbumDetailsProps> = ({
               </Animated.Text>
             </View>
           )}
-        </Animated.View>
+        </View>
       </Animated.ScrollView>
     </View>
   );
@@ -153,44 +151,51 @@ const Album: React.FC<AlbumDetailsProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000', // Match with header background
+    backgroundColor: "#000", // Match with header background
   },
   scrollContent: {
-    // Padding bottom accounts for tab bar or player
-    paddingBottom: spacingY._40 + (Platform.OS === 'ios' ? 80 : 60),
+    // No paddingTop needed anymore - we use a spacer view instead
+    paddingBottom: Platform.OS === "ios" ? 80 : 60,
   },
   contentContainer: {
-    backgroundColor: '#121212', // Apple Music-like dark background
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingTop: spacingY._20,
-    // Move content up to overlap with header
-    marginTop: -20,
+    backgroundColor: "#121212", // Apple Music-like dark background
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
+    // Position the content container to create a nice overlap effect
+    marginTop: -25,
+    paddingBottom: 40,
     // Add shadow to create depth
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: -3,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 6,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: {
+          width: 0,
+          height: -3,
+        },
+        shadowOpacity: 0.3,
+        shadowRadius: 4.65,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
   tracksContainer: {
-    marginBottom: spacingY._25,
+    marginBottom: 25,
   },
   tracksList: {
-    paddingHorizontal: spacingX._15,
+    paddingHorizontal: 15,
   },
   credits: {
-    paddingHorizontal: spacingX._20,
-    marginVertical: spacingY._30,
+    paddingHorizontal: 20,
+    marginVertical: 30,
     alignItems: "center",
   },
   creditsText: {
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: "rgba(255, 255, 255, 0.6)",
     textAlign: "center",
-    fontSize: fontSize.sm,
+    fontSize: 14,
     lineHeight: 18,
   },
 });
