@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, View, Text } from 'react-native';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { RefreshControl } from 'react-native-gesture-handler';
 import { HeroSection } from '@/components/home/HeroSection';
 import { NewReleaseSection } from '../../../components/home/NewReleaseSection';
@@ -13,10 +13,50 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { CollectionSection } from '@/components/home/CollectionSection';
 import { PlaylistSection } from '@/components/home/PlaylistSection';
 import { DJCollectionSection } from '@/components/home/DJCollectionSection';
+import { useQueue } from '@/store/queue';
+import TrackPlayer, { Track } from 'react-native-track-player';
+import { generateTracksListId } from '@/helpers/miscellaneous';
 
 
 export default function HomeScreen() {
     const { data, loading, error, refetch } = useHomeData();
+
+    const queueOffset = useRef(0)
+        const { activeQueueId, setActiveQueueId } = useQueue()	
+    
+        const handleTrackSelect = async (selectedTrack: Track, tracks: Track[], id: string) => {
+            console.log('Selected track:', selectedTrack);
+            const trackIndex = tracks.findIndex((track) => track.url === selectedTrack.url)
+    
+            if (trackIndex === -1) return
+    
+            const isChangingQueue = id !== activeQueueId
+    
+            if (isChangingQueue) {
+                const beforeTracks = tracks.slice(0, trackIndex)
+                const afterTracks = tracks.slice(trackIndex + 1)
+    
+                await TrackPlayer.reset()
+    
+                // we construct the new queue
+                await TrackPlayer.add(selectedTrack)
+                await TrackPlayer.add(afterTracks)
+                await TrackPlayer.add(beforeTracks)
+    
+                await TrackPlayer.play()
+    
+                queueOffset.current = trackIndex
+                setActiveQueueId(id)
+            } else {
+                const nextTrackIndex =
+                    trackIndex - queueOffset.current < 0
+                        ? tracks.length + trackIndex - queueOffset.current
+                        : trackIndex - queueOffset.current
+    
+                await TrackPlayer.skip(nextTrackIndex)
+                TrackPlayer.play()
+            }
+        }
 
     const renderSection = useCallback((section: any, index: number) => {
         switch (section.type) {
@@ -31,7 +71,16 @@ export default function HomeScreen() {
             case 'artist_more_like':
                 return <FeaturedArtistsSection key={index} data={section} />;
             case 'trend':
-                return <TrendingSection key={index} data={section} />;
+                return (
+                    <TrendingSection
+                        key={index}
+                        data={section}
+                        queueID={generateTracksListId(index.toString(), section.heading )}
+                        onTrackPress={(selectedTrack: Track, tracks: Track[], id: string) =>
+                            handleTrackSelect(selectedTrack, tracks, id)
+                        }
+                    />
+                );
             case 'albums':
                 return <CollectionSection key={index} data={section} />;
             case 'djs':
