@@ -32,7 +32,7 @@ interface AlbumDetailsProps {
   goMore: () => void;
 }
 
-const Album: React.FC<AlbumDetailsProps> = ({ data, goBack, goMore }) => {
+const AlbumDetails: React.FC<AlbumDetailsProps> = ({ data, goBack, goMore }) => {
   const albumData = data?.Album?.[0] || {};
   const tracksData = data?.Album?.[1]?.Tracks || [];
   const relatedAlbums = data?.Album?.[2]?.ArtistAlbum || [];
@@ -54,6 +54,7 @@ const Album: React.FC<AlbumDetailsProps> = ({ data, goBack, goMore }) => {
     if (!search) return tracks;
     return tracks.filter(trackTitleFilter(search));
   }, [search, tracks]);
+
 
 
   return (
@@ -123,7 +124,7 @@ const Album: React.FC<AlbumDetailsProps> = ({ data, goBack, goMore }) => {
         {filteredTracks.length > 0 && (
           <View style={styles.tracksContainer}>
             <TracksList
-              id={generateTracksListId("songs", search)}
+              id={generateTracksListId(albumData.id, search)}
               tracks={filteredTracks}
               scrollEnabled={false}
             />
@@ -276,4 +277,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Album;
+export default AlbumDetails;

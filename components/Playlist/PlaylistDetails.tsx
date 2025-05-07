@@ -39,6 +39,8 @@ const PlaylistDetails: React.FC<PlaylistDetailsProps> = ({ data, goBack, goMore 
     },
   });
 
+
+
   const tracks = tracksData.map((track: any) => ({
     ...track,
     url: track.path,
@@ -114,7 +116,7 @@ const PlaylistDetails: React.FC<PlaylistDetailsProps> = ({ data, goBack, goMore 
         {filteredTracks.length > 0 && (
           <View style={styles.tracksContainer}>
             <TracksList
-              id={generateTracksListId("songs", search)}
+              id={generateTracksListId(playlistData.id, search)}
               tracks={filteredTracks}
               scrollEnabled={false}
             />

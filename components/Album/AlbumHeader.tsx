@@ -1,10 +1,10 @@
-import React from "react";
-import { View, Text, StyleSheet, Platform } from "react-native";
-import { TouchableOpacity } from "react-native-gesture-handler";
-import { Ionicons } from "@expo/vector-icons";
-import FastImage from "@d11/react-native-fast-image";
 import { unknownTrackImageUri } from "@/constants/images";
-import { ALBUM_ART_SIZE } from "./index";
+import FastImage from "@d11/react-native-fast-image";
+import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import { Platform, StyleSheet, Text, View } from "react-native";
+import { TouchableOpacity } from "react-native-gesture-handler";
+import { ALBUM_ART_SIZE } from "./AlbumDetails";
 
 interface AlbumHeaderProps {
   artwork: string;
@@ -57,7 +57,7 @@ const AlbumHeader: React.FC<AlbumHeaderProps> = ({
             priority: FastImage.priority.normal,
           }}
           style={styles.artwork}
-           resizeMode="cover"
+          resizeMode="cover"
         />
       </View>
 

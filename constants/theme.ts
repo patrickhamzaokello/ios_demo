@@ -11,7 +11,7 @@ export const colors = {
     black: "#000",
     rose: "#ef4444",
     green: "#16a34a",
-    background: '#000',
+    background: 'rgba(255, 255, 255, 0.1)',
     divider: 'rgba(255, 255, 255, 0.1)',
     success: '#1DB954',
     error: '#F15E6C',
