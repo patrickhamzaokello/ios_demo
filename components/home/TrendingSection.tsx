@@ -1,7 +1,6 @@
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   Pressable,
   Dimensions,
@@ -9,21 +8,17 @@ import {
 } from "react-native";
 import Animated, {
   FadeInUp,
-  SharedValue,
-  useAnimatedStyle,
-  withSpring,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import type { Section } from "../../types/home";
 import { colors } from "@/constants/theme";
 import React, { useMemo, useState } from "react";
-import { BlurView } from "expo-blur";
 import FastImage from "@d11/react-native-fast-image";
 import { unknownTrackImageUri } from "@/constants/images";
 import { Track, useActiveTrack, useIsPlaying } from "react-native-track-player";
 import { Ionicons } from "@expo/vector-icons";
 import LoaderKit from "react-native-loader-kit";
-import { colors as new_colors, fontSize } from "@/constants/tokens";
+import { colors as new_colors } from "@/constants/tokens";
 
 interface Props {
   data: Section;
@@ -34,12 +29,8 @@ interface Props {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const GRID_PADDING = 16;
-const GRID_SPACING = 12;
-const COLUMNS = 2;
-const IMAGE_SIZE = 60;
-const ITEM_WIDTH =
-  (SCREEN_WIDTH - GRID_PADDING * 2 - GRID_SPACING * (COLUMNS - 1)) / COLUMNS;
+const LIST_PADDING = 16;
+const LIST_ITEM_HEIGHT = 72; // Adjusted for a comfortable list item height
 
 export function TrendingSection({
   data,
@@ -49,9 +40,7 @@ export function TrendingSection({
 }: Props) {
   if (!data?.Tracks || data.Tracks.length === 0) return null;
 
-  const gridItems = useMemo(() => {
-    // Create rows of 2 items each to properly handle odd numbers
-    const rows = [];
+  const listItems = useMemo(() => {
     const tracks = (data.Tracks ?? []).filter((item) => item?.title);
 
     const tracks_fixed = tracks.map((track: any) => ({
@@ -60,49 +49,21 @@ export function TrendingSection({
       artwork: track.artworkPath,
     }));
 
-    for (let i = 0; i < tracks_fixed.length; i += COLUMNS) {
-      const rowItems = [];
+    // Only display the first 6 tracks in the list to encourage "See All" usage
+    // You can adjust this number as needed
+    const displayTracks = tracks_fixed.slice(0, 6);
 
-      // Process up to COLUMNS items per row
-      for (let j = 0; j < COLUMNS; j++) {
-        const index = i + j;
-        if (index < tracks_fixed.length) {
-          rowItems.push(
-            <TrackItem
-              key={tracks_fixed[index].id}
-              item={tracks_fixed[index]}
-              index={index}
-              onPress={() =>
-                onTrackPress?.(tracks_fixed[index], tracks_fixed, queueID)
-              }
-              isLeftItem={j === 0}
-              isRightItem={j === COLUMNS - 1}
-            />
-          );
-        } else {
-          // Add an empty placeholder to maintain grid structure when odd number of items
-          rowItems.push(
-            <View
-              key={`empty-${index}`}
-              style={{
-                width: ITEM_WIDTH,
-                marginLeft: j > 0 ? GRID_SPACING : 0,
-                marginBottom: GRID_SPACING,
-              }}
-            />
-          );
-        }
-      }
-
-      // Add the row with proper flex layout
-      rows.push(
-        <View key={`row-${i}`} style={styles.gridRow}>
-          {rowItems}
-        </View>
-      );
-    }
-
-    return rows;
+    return displayTracks.map((track, index) => (
+      <React.Fragment key={track.id}>
+        <TrackListItem
+          item={track}
+          index={index}
+          onPress={() => onTrackPress?.(track, tracks_fixed, queueID)}
+          isLast={index === displayTracks.length - 1}
+        />
+        {index < displayTracks.length - 1 && <View style={styles.separator} />}
+      </React.Fragment>
+    ));
   }, [data.Tracks, onTrackPress]);
 
   return (
@@ -133,54 +94,50 @@ export function TrendingSection({
         </Pressable>
       </View>
 
-      <View style={styles.gridContainer} testID="trending-grid">
-        {gridItems}
+      <View style={styles.cardContainer} testID="trending-list">
+        <LinearGradient
+          colors={["rgba(255,255,255,0.1)", "rgba(255,255,255,0.05)"]}
+          style={styles.cardGradient}
+        />
+        <View style={styles.listContainer}>
+          {listItems}
+        </View>
       </View>
     </View>
   );
 }
 
-interface TrackItemProps {
+interface TrackListItemProps {
   item: any;
   index: number;
   onPress: () => void;
-  isLeftItem?: boolean;
-  isRightItem?: boolean;
+  isLast?: boolean;
 }
 
-function TrackItem({
+function TrackListItem({
   item,
   index,
   onPress,
-  isLeftItem = false,
-  isRightItem = false,
-}: TrackItemProps) {
+  isLast = false,
+}: TrackListItemProps) {
   const [pressed, setPressed] = useState(false);
-
   const { playing } = useIsPlaying();
-
   const isActiveTrack = useActiveTrack()?.url === item.url;
 
   return (
     <AnimatedPressable
       style={[
         styles.trackItem,
-        isLeftItem ? styles.leftItem : null,
-        isRightItem ? styles.rightItem : null,
-        !isLeftItem && !isRightItem ? null : null,
         pressed && styles.trackItemPressed,
+        isLast && styles.lastItem,
       ]}
       entering={FadeInUp.delay(index * 80).springify()}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
       onPress={onPress}
     >
-      <LinearGradient
-        colors={["rgba(255,255,255,0.1)", "rgba(255,255,255,0.05)"]}
-        style={styles.trackItemGradient}
-      />
-
-      <View style={styles.rankBadgeContainer}>
+      {/* Rank badge */}
+      <View style={styles.rankContainer}>
         <LinearGradient
           colors={
             index === 0
@@ -197,37 +154,37 @@ function TrackItem({
         </LinearGradient>
       </View>
 
+      {/* Album artwork */}
       <View style={styles.imageContainer}>
-        <View>
-          <FastImage
-            source={{
-              uri: item.artwork ?? unknownTrackImageUri,
-              priority: FastImage.priority.normal,
-            }}
-            style={{
-              ...styles.trackArtworkImage,
-              opacity: isActiveTrack ? 0.6 : 1,
-            }}
-          />
+        <FastImage
+          source={{
+            uri: item.artwork ?? unknownTrackImageUri,
+            priority: FastImage.priority.normal,
+          }}
+          style={{
+            ...styles.trackArtworkImage,
+            opacity: isActiveTrack ? 0.6 : 1,
+          }}
+        />
 
-          {isActiveTrack &&
-            (playing ? (
-              <LoaderKit
-                style={styles.trackPlayingIconIndicator}
-                name="LineScaleParty"
-                color={new_colors.icon}
-              />
-            ) : (
-              <Ionicons
-                style={styles.trackPausedIndicator}
-                name="play"
-                size={24}
-                color={new_colors.icon}
-              />
-            ))}
-        </View>
+        {isActiveTrack &&
+          (playing ? (
+            <LoaderKit
+              style={styles.trackPlayingIconIndicator}
+              name="LineScaleParty"
+              color={new_colors.icon}
+            />
+          ) : (
+            <Ionicons
+              style={styles.trackPausedIndicator}
+              name="play"
+              size={24}
+              color={new_colors.icon}
+            />
+          ))}
       </View>
 
+      {/* Track details */}
       <View style={styles.details}>
         <Text
           style={{
@@ -242,6 +199,19 @@ function TrackItem({
           {item.artist}
         </Text>
       </View>
+
+      {/* Play indicator */}
+      <View style={styles.playIndicator}>
+        {isActiveTrack ? (
+          <Ionicons 
+            name={playing ? "pause-circle" : "play-circle"} 
+            size={24} 
+            color={colors.primary} 
+          />
+        ) : (
+          <Ionicons name="play-circle-outline" size={24} color="rgba(255,255,255,0.7)" />
+        )}
+      </View>
     </AnimatedPressable>
   );
 }
@@ -249,14 +219,14 @@ function TrackItem({
 const styles = StyleSheet.create({
   container: {
     marginTop: 32,
-    paddingHorizontal: GRID_PADDING,
-    marginBottom: 8,
+    paddingHorizontal: LIST_PADDING,
+    marginBottom: 16,
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 16,
   },
   headingContainer: {
     flexDirection: "row",
@@ -308,112 +278,60 @@ const styles = StyleSheet.create({
     color: "#A0AEC0",
     fontWeight: "600",
   },
-  gridContainer: {
-    flexDirection: "column",
-  },
-  gridRow: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    marginBottom: 0, // We're handling margins in the items themselves
-  },
-  leftItem: {
-    marginRight: GRID_SPACING / 2,
-  },
-  rightItem: {
-    marginLeft: GRID_SPACING / 2,
-  },
-  trackItem: {
-    width: ITEM_WIDTH,
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    marginBottom: GRID_SPACING,
+  cardContainer: {
+    width: SCREEN_WIDTH - LIST_PADDING * 2,
     borderRadius: 16,
-    position: "relative",
     overflow: "hidden",
+    position: "relative",
     ...Platform.select({
       ios: {
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 8,
+        elevation: 6,
       },
       web: {
-        boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
+        boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
       },
     }),
   },
-  trackItemGradient: {
+  cardGradient: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 16,
+  },
+  listContainer: {
+    flexDirection: "column",
+  },
+  separator: {
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    marginHorizontal: 16,
+  },
+  trackItem: {
+    height: LIST_ITEM_HEIGHT,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    paddingHorizontal: 16,
+  },
+  lastItem: {
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
   trackItemPressed: {
-    transform: [{ scale: 0.98 }],
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
-
-  trackPlayingIconIndicator: {
-    position: "absolute",
-    top: 18,
-    left: 16,
-    width: 16,
-    height: 16,
-  },
-  trackPausedIndicator: {
-    position: "absolute",
-    top: 14,
-    left: 14,
-  },
-  imageContainer: {
-    borderRadius: 12,
-    overflow: "hidden",
-    flexDirection: "row",
-    marginRight: 8,
-    alignItems: "center",
-    position: "relative",
-  },
-  trackArtworkImage: {
-    borderRadius: 8,
-    width: 50,
-    height: 50,
-  },
-  playIconOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.3)",
+  rankContainer: {
+    marginRight: 12,
     alignItems: "center",
     justifyContent: "center",
-    opacity: 0,
-  },
-  playIcon: {
-    width: 0,
-    height: 0,
-    backgroundColor: "transparent",
-    borderStyle: "solid",
-    borderLeftWidth: 12,
-    borderRightWidth: 0,
-    borderBottomWidth: 8,
-    borderTopWidth: 8,
-    borderLeftColor: "white",
-    borderRightColor: "transparent",
-    borderBottomColor: "transparent",
-    borderTopColor: "transparent",
-    marginLeft: 4,
-  },
-  rankBadgeContainer: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    zIndex: 10,
+    width: 28,
   },
   rankBadge: {
     width: 24,
@@ -432,6 +350,29 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
+  imageContainer: {
+    borderRadius: 8,
+    overflow: "hidden",
+    position: "relative",
+    marginRight: 12,
+  },
+  trackArtworkImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+  },
+  trackPlayingIconIndicator: {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    width: 16,
+    height: 16,
+  },
+  trackPausedIndicator: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+  },
   details: {
     flex: 1,
     justifyContent: "center",
@@ -440,12 +381,19 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "700",
     fontSize: 15,
-    marginBottom: 6,
+    marginBottom: 4,
     letterSpacing: 0.2,
   },
   artist: {
     color: "rgba(255, 255, 255, 0.7)",
     fontSize: 13,
     fontWeight: "500",
+  },
+  playIndicator: {
+    width: 32,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
   },
 });

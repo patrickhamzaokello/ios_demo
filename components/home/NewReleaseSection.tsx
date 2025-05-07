@@ -31,7 +31,15 @@ export function NewReleaseSection({ data }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <Text style={styles.heading}>{data.heading}</Text>
+                <View style={styles.headingContainer}>
+                  <LinearGradient
+                    colors={["#7C3AED", "#4F46E5"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.headingAccent}
+                  />
+                  <Text style={styles.heading}>{data.heading}</Text>
+                </View>
         <Pressable style={styles.seeAllButton}>
           <Text style={styles.seeAll}>See All</Text>
           <Ionicons name="chevron-forward" size={16} color={colors.primary} />
@@ -186,12 +194,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 20,
   },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  headingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  headingAccent: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+    marginRight: 8,
+  },
   heading: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "700",
     color: "#FFFFFF",
-    fontFamily: "System",
-    letterSpacing: -0.5,
+    letterSpacing: 0.2,
   },
   seeAllButton: {
     flexDirection: "row",

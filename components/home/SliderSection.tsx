@@ -18,6 +18,7 @@ import type { Section } from "../../types/home";
 import { Link, useRouter } from "expo-router";
 import FastImage from "@d11/react-native-fast-image";
 import { unknownTrackImageUri } from "@/constants/images";
+import { LinearGradient } from "expo-linear-gradient";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.8;
@@ -42,7 +43,17 @@ export function SliderSection({ data }: Props) {
   const router = useRouter();
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>{data.heading}</Text>
+      <View style={styles.headerRow}>
+        <View style={styles.headingContainer}>
+          <LinearGradient
+            colors={["#7C3AED", "#4F46E5"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.headingAccent}
+          />
+          <Text style={styles.heading}>{data.heading}</Text>
+        </View>
+      </View>
       <Animated.ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -112,12 +123,28 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 24,
   },
-  heading: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#FFFFFF",
-    paddingHorizontal: 16,
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  headingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  headingAccent: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+    marginRight: 8,
+  },
+  heading: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: 0.2,
   },
   scrollContent: {
     paddingHorizontal: 16,

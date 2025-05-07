@@ -1,11 +1,13 @@
 import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
 import { Link } from 'expo-router';
 import Animated, { FadeInUp, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Section } from '../../types/home';
 import { useState } from 'react';
 import { unknownTrackImageUri } from '@/constants/images';
 import FastImage from '@d11/react-native-fast-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors } from '@/constants/theme';
 
 interface Props {
   data: Section;
@@ -19,7 +21,15 @@ export function FeaturedArtistsSection({ data }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <Text style={styles.heading}>{data.heading}</Text>
+        <View style={styles.headingContainer}>
+                  <LinearGradient
+                    colors={["#7C3AED", "#4F46E5"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.headingAccent}
+                  />
+                  <Text style={styles.heading}>{data.heading}</Text>
+                </View>
         <Pressable>
           <Text style={styles.viewAll}>View all</Text>
         </Pressable>
@@ -75,7 +85,7 @@ function ArtistCard({ item, index }: { item: any; index: number }) {
             />
         {item.verified && (
           <View style={styles.verifiedBadge}>
-            <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+            <MaterialCommunityIcons name="check-decagram" size={20} color={colors.primary} />
           </View>
         )}
       </View>
@@ -97,10 +107,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 20,
   },
+  headingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  headingAccent: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+    marginRight: 8,
+  },
   heading: {
     fontSize: 22,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: 0.2,
   },
   viewAll: {
     fontSize: 14,
@@ -129,29 +150,20 @@ const styles = StyleSheet.create({
     height: 130,
     borderRadius: 65,
     borderWidth: 3,
-    borderColor: 'rgba(99, 179, 237, 0.3)',
+    borderColor: 'rgb(212, 212, 212)',
   },
   verifiedBadge: {
     position: 'absolute',
     bottom: 3,
     right: 3,
-    backgroundColor: '#63B3ED',
+    backgroundColor: colors.matteBlack,
     width: 28,
     height: 28,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#111827',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 4,
   },
-  verifiedIcon: {
-    color: '#FFFFFF',
-  },
+
   name: {
     color: '#FFFFFF',
     textAlign: 'center',
