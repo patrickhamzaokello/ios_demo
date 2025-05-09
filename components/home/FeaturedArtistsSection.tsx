@@ -1,5 +1,5 @@
 import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import Animated, { FadeInUp, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { Section } from '../../types/home';
@@ -67,12 +67,23 @@ function ArtistCard({ item, index }: { item: any; index: number }) {
     scale.value = withSpring(1);
   };
 
+  const router = useRouter();
+
   return (
     <AnimatedPressable 
       style={[styles.artistItem, animatedStyle]}
       entering={FadeInUp.delay(index * 100).springify()}
       onPressIn={handlePressIn}
-      onPressOut={handlePressOut}>
+      onPressOut={handlePressOut}
+      onPress={() =>
+        router.push({
+          pathname: "/(tabs)/(home)/home_artist_details",
+          params: {
+            artist_id: item.id,
+          },
+        })
+      }
+      >
       <View style={styles.imageContainer}>
        
          <FastImage
