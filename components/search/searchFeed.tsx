@@ -2,7 +2,7 @@ import { colors } from "@/constants/theme";
 import useSearch from "@/hooks/useSearch"; // Custom hook for API search
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -15,6 +15,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Animated,
+  Keyboard,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -62,41 +64,85 @@ const categories = [
   },
 ];
 
-const topResults = [
-  {
-    id: "1",
-    title: "Blinding Lights",
-    artist: "The Weeknd",
-    image: "https://via.placeholder.com/60/222222/ffffff?text=BL",
-  },
-  {
-    id: "2",
-    title: "As It Was",
-    artist: "Harry Styles",
-    image: "https://via.placeholder.com/60/222222/ffffff?text=AIW",
-  },
-  {
-    id: "3",
-    title: "Bad Habits",
-    artist: "Ed Sheeran",
-    image: "https://via.placeholder.com/60/222222/ffffff?text=BH",
-  },
-];
-
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [submittedQuery, setSubmittedQuery] = useState(""); // Store the query to be submitted
+  const [submittedQuery, setSubmittedQuery] = useState(""); 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showSuggestion, setShowSuggestion] = useState(false);
+  const searchInputRef = useRef(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const { data: searchResults, isLoading, error } = useSearch(submittedQuery);
+  const { 
+    data: searchResults, 
+    isLoading, 
+    error, 
+    suggestedWord,
+    totalResults,
+    hasMore
+  } = useSearch(submittedQuery, currentPage);
+
+  // Fade in animation for suggestion
+  useEffect(() => {
+    if (suggestedWord) {
+      setShowSuggestion(true);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      setShowSuggestion(false);
+      fadeAnim.setValue(0);
+    }
+  }, [suggestedWord]);
 
   const handleSearch = (text) => {
     setSearchQuery(text);
+    if (text.length === 0) {
+      setSubmittedQuery("");
+      setIsSearching(false);
+      setCurrentPage(1);
+    }
   };
 
   const handleSearchSubmit = () => {
-    setSubmittedQuery(searchQuery); // Trigger the API call with the submitted query
-    setIsSearching(searchQuery.length > 0);
+    if (searchQuery.trim().length > 0) {
+      setSubmittedQuery(searchQuery.trim());
+      setIsSearching(true);
+      setCurrentPage(1);
+      Keyboard.dismiss();
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setSubmittedQuery("");
+    setIsSearching(false);
+    setCurrentPage(1);
+    searchInputRef.current?.focus();
+  };
+
+  const handleUseSuggestion = () => {
+    // Extract the suggested word from the "Did you mean: X?" format
+    const suggested = suggestedWord.match(/Did you mean: (.*)\?/);
+    if (suggested && suggested[1]) {
+      setSearchQuery(suggested[1]);
+      setSubmittedQuery(suggested[1]);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (hasMore && !isLoading) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  const handleRecentSearch = (query) => {
+    setSearchQuery(query);
+    setSubmittedQuery(query);
+    setIsSearching(true);
+    setCurrentPage(1);
   };
 
   const renderCategory = ({ item }) => (
@@ -106,23 +152,12 @@ export default function SearchScreen() {
           source={{
             uri:
               item.image ||
-              "https://via.placeholder.com/200/222222/ffffff?text=Hip-Hop",
+              "https://via.placeholder.com/200/222222/ffffff?text=Music",
           }}
           style={styles.categoryImage}
         />
         <Text style={styles.categoryName}>{item.name}</Text>
       </View>
-    </TouchableOpacity>
-  );
-
-  const renderTopResult = ({ item }) => (
-    <TouchableOpacity style={styles.resultItem}>
-      <Image source={{ uri: item.image }} style={styles.resultImage} />
-      <View style={styles.resultTextContainer}>
-        <Text style={styles.resultTitle}>{item.title}</Text>
-        <Text style={styles.resultArtist}>{item.artist}</Text>
-      </View>
-      <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
     </TouchableOpacity>
   );
 
@@ -134,12 +169,35 @@ export default function SearchScreen() {
             <Image
               source={{ uri: item.artworkPath }}
               style={styles.resultImage}
+              defaultSource={require("@/assets/unknown_track.png")} // Add a default image asset
             />
             <View style={styles.resultTextContainer}>
               <Text style={styles.resultTitle}>{item.title}</Text>
-              <Text style={styles.resultSubtitle}>{item.artist}</Text>
+              <View style={styles.resultMetaContainer}>
+                <Text style={styles.resultSubtitle}>{item.artist}</Text>
+                {item.album_name && (
+                  <>
+                    <Text style={styles.dotSeparator}>•</Text>
+                    <Text style={styles.resultSubtitle}>{item.album_name}</Text>
+                  </>
+                )}
+              </View>
+              <View style={styles.resultStats}>
+                <Ionicons name="play" size={12} color="#999" />
+                <Text style={styles.statsText}>{item.plays.toLocaleString()}</Text>
+                <Text style={styles.dotSeparator}>•</Text>
+                <Text style={styles.statsText}>{item.track_duration}</Text>
+                {item.verified && (
+                  <View style={styles.verifiedBadge}>
+                    <Ionicons name="checkmark-circle" size={12} color="#1DB954" />
+                    <Text style={styles.verifiedText}>Verified</Text>
+                  </View>
+                )}
+              </View>
             </View>
-            <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
+            <TouchableOpacity style={styles.actionButton}>
+              <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
+            </TouchableOpacity>
           </TouchableOpacity>
         );
       case "artist":
@@ -147,13 +205,15 @@ export default function SearchScreen() {
           <TouchableOpacity style={styles.resultItem}>
             <Image
               source={{ uri: item.artworkPath }}
-              style={styles.resultImage}
+              style={[styles.resultImage, styles.artistImage]}
             />
             <View style={styles.resultTextContainer}>
               <Text style={styles.resultTitle}>{item.artist}</Text>
-              <Text style={styles.resultSubtitle}>Artist Profile</Text>
+              <Text style={styles.resultSubtitle}>Artist</Text>
             </View>
-            <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
+            <TouchableOpacity style={styles.followButton}>
+              <Text style={styles.followButtonText}>Follow</Text>
+            </TouchableOpacity>
           </TouchableOpacity>
         );
       case "album":
@@ -164,10 +224,12 @@ export default function SearchScreen() {
               style={styles.resultImage}
             />
             <View style={styles.resultTextContainer}>
-              <Text style={styles.resultTitle}>{item.album_name}</Text>
+              <Text style={styles.resultTitle}>{item.title}</Text>
               <Text style={styles.resultSubtitle}>{item.artist}</Text>
             </View>
-            <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
+            <TouchableOpacity style={styles.actionButton}>
+              <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
+            </TouchableOpacity>
           </TouchableOpacity>
         );
       case "playlist":
@@ -181,7 +243,9 @@ export default function SearchScreen() {
               <Text style={styles.resultTitle}>{item.title}</Text>
               <Text style={styles.resultSubtitle}>Playlist</Text>
             </View>
-            <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
+            <TouchableOpacity style={styles.actionButton}>
+              <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
+            </TouchableOpacity>
           </TouchableOpacity>
         );
       default:
@@ -206,18 +270,19 @@ export default function SearchScreen() {
             style={styles.searchIcon}
           />
           <TextInput
+            ref={searchInputRef}
             style={styles.searchInput}
             placeholder="Artists, Songs, Lyrics, and More"
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={handleSearch}
-            onSubmitEditing={handleSearchSubmit} // Trigger API call on search button press
+            onSubmitEditing={handleSearchSubmit}
             autoCapitalize="none"
             autoCorrect={false}
-            returnKeyType="search" // Show the search button on the keyboard
+            returnKeyType="search"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => handleSearch("")}>
+            <TouchableOpacity onPress={handleClearSearch}>
               <View style={styles.clearButton}>
                 <Ionicons name="close-circle-sharp" size={16} color="#999" />
               </View>
@@ -226,24 +291,95 @@ export default function SearchScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.content}>
+      {/* Suggested search term */}
+      {showSuggestion && suggestedWord && (
+        <Animated.View 
+          style={[
+            styles.suggestionContainer, 
+            { opacity: fadeAnim }
+          ]}
+        >
+          <Text style={styles.suggestionText}>
+            {suggestedWord}
+          </Text>
+          <TouchableOpacity 
+            style={styles.suggestionButton}
+            onPress={handleUseSuggestion}
+          >
+            <Text style={styles.suggestionButtonText}>Use Suggestion</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
+      {isSearching && searchResults?.length === 0 && !isLoading && (
+        <View style={styles.noResultsContainer}>
+          <Ionicons name="search-outline" size={64} color="#666" />
+          <Text style={styles.noResultsText}>
+            No results found for "{submittedQuery}"
+          </Text>
+          <Text style={styles.noResultsHint}>
+            Try checking your spelling or using different keywords
+          </Text>
+        </View>
+      )}
+
+      {isSearching && searchResults?.length > 0 && (
+        <View style={styles.resultsInfoContainer}>
+          <Text style={styles.resultsInfoText}>
+            {totalResults} {totalResults === 1 ? 'result' : 'results'} for "{submittedQuery}"
+          </Text>
+        </View>
+      )}
+
+      <ScrollView 
+        style={styles.content}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={isSearching && searchResults?.length === 0 && !isLoading ? { flex: 1 } : {}}
+      >
         {isSearching ? (
           /* Search Results */
           <View style={styles.resultsContainer}>
-            <Text style={styles.sectionTitle}>Top Results</Text>
-            {isLoading ? (
-              <ActivityIndicator size="large" color="#FFF" />
+            {isLoading && currentPage === 1 ? (
+              <ActivityIndicator size="large" color="#FFF" style={styles.loadingIndicator} />
             ) : error ? (
-              <Text style={styles.errorText}>
-                Something went wrong. Please try again.
-              </Text>
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle-outline" size={64} color="#FF2D55" />
+                <Text style={styles.errorText}>
+                  Something went wrong. Please try again.
+                </Text>
+                <TouchableOpacity 
+                  style={styles.retryButton}
+                  onPress={() => handleSearchSubmit()}
+                >
+                  <Text style={styles.retryButtonText}>Retry</Text>
+                </TouchableOpacity>
+              </View>
             ) : (
-              <FlatList
-                data={searchResults}
-                renderItem={renderSearchResult}
-                keyExtractor={(item) => item.id}
-                scrollEnabled={false}
-              />
+              searchResults?.length > 0 && (
+                <>
+                  <FlatList
+                    data={searchResults}
+                    renderItem={renderSearchResult}
+                    keyExtractor={(item) => item.id}
+                    scrollEnabled={false}
+                    ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+                  />
+                  
+                  {hasMore && (
+                    <TouchableOpacity 
+                      style={styles.loadMoreButton}
+                      onPress={handleLoadMore}
+                      disabled={isLoading}
+                    >
+                      {isLoading && currentPage > 1 ? (
+                        <ActivityIndicator size="small" color="#FFF" />
+                      ) : (
+                        <Text style={styles.loadMoreButtonText}>Load More</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </>
+              )
             )}
           </View>
         ) : (
@@ -259,7 +395,11 @@ export default function SearchScreen() {
               </View>
               <View style={styles.recentList}>
                 {recentSearches.map((search, index) => (
-                  <TouchableOpacity key={index} style={styles.recentItem}>
+                  <TouchableOpacity 
+                    key={index} 
+                    style={styles.recentItem}
+                    onPress={() => handleRecentSearch(search)}
+                  >
                     <BlurView
                       intensity={20}
                       tint="dark"
@@ -301,6 +441,7 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#121212",
   },
   header: {
     paddingHorizontal: 16,
@@ -313,7 +454,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     paddingHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   searchBar: {
     flexDirection: "row",
@@ -334,6 +475,32 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     padding: 4,
+  },
+  suggestionContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "rgba(50, 50, 50, 0.6)",
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 8,
+  },
+  suggestionText: {
+    color: "#CCC",
+    fontSize: 14,
+  },
+  suggestionButton: {
+    backgroundColor: "#333",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  suggestionButtonText: {
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: "500",
   },
   content: {
     flex: 1,
@@ -416,20 +583,23 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   resultsContainer: {
-    marginTop: 16,
+    marginTop: 8,
+    paddingBottom: 200
   },
   resultItem: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#333",
   },
   resultImage: {
     width: 48,
     height: 48,
     borderRadius: 6,
     marginRight: 12,
+    backgroundColor: "#333", // Placeholder color while loading
+  },
+  artistImage: {
+    borderRadius: 24, // Make artist images circular
   },
   resultTextContainer: {
     flex: 1,
@@ -440,35 +610,126 @@ const styles = StyleSheet.create({
     color: "#FFF",
     marginBottom: 4,
   },
-  resultArtist: {
-    fontSize: 14,
+  resultSubtitle: {
     color: "#999",
+    fontSize: 14,
+  },
+  resultMetaContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  resultStats: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statsText: {
+    color: "#999",
+    fontSize: 12,
+    marginLeft: 4,
+    marginRight: 4,
+  },
+  dotSeparator: {
+    color: "#999",
+    marginHorizontal: 4,
+    fontSize: 12,
+  },
+  verifiedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(29, 185, 84, 0.15)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  verifiedText: {
+    color: "#1DB954",
+    fontSize: 10,
+    marginLeft: 2,
+  },
+  actionButton: {
+    padding: 8,
+  },
+  followButton: {
+    backgroundColor: "#333",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginLeft: 8,
+  },
+  followButtonText: {
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  itemSeparator: {
+    height: 0.5,
+    backgroundColor: "#333",
+  },
+  loadMoreButton: {
+    backgroundColor: "#333",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  loadMoreButtonText: {
+    color: "#FFF",
+    fontWeight: "500",
+  },
+  loadingIndicator: {
+    marginTop: 24,
+  },
+  errorContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
   },
   errorText: {
     color: "#FF2D55",
     fontSize: 16,
     textAlign: "center",
-    marginTop: 20,
+    marginTop: 16,
+    marginBottom: 16,
   },
-  resultSubtitle: {
-    color: "#999",
-    fontSize: 14,
+  retryButton: {
+    backgroundColor: "#FF2D55",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
   },
-  itemSeparator: {
-    height: 1,
-    backgroundColor: "#333",
-    marginVertical: 10,
+  retryButtonText: {
+    color: "#FFF",
+    fontWeight: "500",
+  },
+  noResultsContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
   },
   noResultsText: {
-    color: "#999",
-    fontSize: 16,
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "600",
     textAlign: "center",
-    marginTop: 20,
+    marginTop: 16,
   },
-  placeholderText: {
+  noResultsHint: {
     color: "#999",
-    fontSize: 16,
+    fontSize: 14,
     textAlign: "center",
-    marginTop: 20,
+    marginTop: 8,
+  },
+  resultsInfoContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  resultsInfoText: {
+    color: "#999",
+    fontSize: 14,
   },
 });
