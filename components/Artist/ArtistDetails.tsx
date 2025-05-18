@@ -197,7 +197,7 @@ const ArtistBioSection = ({ bioData }: { bioData: any }) => {
   const bio = bioData.Bio[0];
   
   return (
-    <ArtistBioFooter artist={bio} bioData={bioData}/>
+    <ArtistBioFooter artist={bio}/>
   );
 };
 

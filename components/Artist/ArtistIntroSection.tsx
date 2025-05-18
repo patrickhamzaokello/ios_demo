@@ -1,76 +1,87 @@
-// Optimized Artist Intro Header
 import React from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
+import FastImage from "@d11/react-native-fast-image";
+import { unknownTrackImageUri } from "@/constants/images";
 
 const ArtistIntroHeader = ({ artist }: { artist: any }) => {
   return (
-    <View style={styles.container}>
-      {/* Hero cover image */}
-      <Image source={{ uri: artist.profilephoto }} style={styles.profilePhoto} />
+    <View style={{ marginBottom: 20 }}>
+      <View style={styles.container}>
+        {/* Hero cover image */}
 
-      {/* Gradient overlay for better text visibility */}
-      <LinearGradient
-        colors={["transparent", "rgba(0,0,0,0.7)", "rgba(0,0,0,0.9)"]}
-        style={styles.gradient}
-      />
+        <FastImage
+          source={{
+            uri: artist.profilephoto ?? unknownTrackImageUri,
+            priority: FastImage.priority.normal,
+          }}
+          style={styles.profilePhoto}
+          resizeMode="cover"
+        />
 
-      {/* Content overlay */}
-      <View style={styles.contentContainer}>
-        {/* Verified badge (top-right) */}
-        {artist.verified && (
-          <View style={styles.verifiedBadge}>
-            <MaterialCommunityIcons
-              name="check-decagram"
-              size={16}
-              color="#fff"
-            />
-            <Text style={styles.verifiedText}>Verified Artist</Text>
-          </View>
-        )}
+        {/* Gradient overlay for better text visibility */}
+        <LinearGradient
+          colors={["transparent", "rgba(0,0,0,0.7)", "rgba(0,0,0,0.9)"]}
+          style={styles.gradient}
+        />
 
-        {/* Artist main info */}
-        <View style={styles.artistInfo}>
-          <Text style={styles.artistName}>{artist.name}</Text>
-
-          {/* Monthly listeners with icon */}
-          <View style={styles.listenerWrapper}>
-            <MaterialCommunityIcons
-              name="headphones"
-              size={16}
-              color="#bbb"
-              style={styles.icon}
-            />
-            <Text style={styles.listenerCount}>{artist.monthly}</Text>
-          </View>
-
-          {/* Short artist intro/tagline - limited to 2 lines */}
-          <Text style={styles.artistTagline} numberOfLines={2}>
-            {artist.intro}
-          </Text>
-
-          {/* Action buttons */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.followButton}>
-              <Text style={styles.followButtonText}>Follow</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.playButton}>
-              <MaterialCommunityIcons name="play" size={20} color="#000" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.moreButton}>
+        {/* Content overlay */}
+        <View style={styles.contentContainer}>
+          {/* Verified badge (top-right) */}
+          {artist.verified && (
+            <View style={styles.verifiedBadge}>
               <MaterialCommunityIcons
-                name="dots-horizontal"
-                size={20}
+                name="check-decagram"
+                size={16}
                 color="#fff"
               />
-            </TouchableOpacity>
+              <Text style={styles.verifiedText}>Verified Artist</Text>
+            </View>
+          )}
+
+          {/* Artist main info - positioned lower on the image */}
+          <View style={styles.artistInfo}>
+            <Text style={styles.artistName}>{artist.name}</Text>
+
+            {/* Monthly listeners with icon */}
+            <View style={styles.listenerWrapper}>
+              <MaterialCommunityIcons
+                name="headphones"
+                size={16}
+                color="#bbb"
+                style={styles.icon}
+              />
+              <Text style={styles.listenerCount}>{artist.monthly}</Text>
+            </View>
+
+            {/* Reorganized action buttons */}
           </View>
-          <TouchableOpacity style={styles.circleButton}>
-            <FontAwesome name="star" size={18} color="white" />
-            <Text style={styles.buttonText}>Artist's Circle</Text>
+        </View>
+      </View>
+
+      <View style={styles.buttonsContainer}>
+        {/* Short artist intro/tagline - limited to 2 lines */}
+        <Text style={styles.artistTagline} numberOfLines={2}>
+          {artist.intro}
+        </Text>
+        {/* Primary actions row */}
+
+        <TouchableOpacity style={styles.circleButton}>
+          <FontAwesome name="plus" size={16} color="white" />
+          <Text style={styles.buttonText}>Join Artist's Circle</Text>
+        </TouchableOpacity>
+
+        {/* Secondary actions row */}
+        <View style={styles.secondaryActions}>
+          <TouchableOpacity style={styles.playButton}>
+            <MaterialCommunityIcons name="play" size={20} color="#000" />
+            <Text style={styles.playButtonText}>Play All</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.shuffleButton}>
+            <MaterialCommunityIcons name="share" size={20} color="#fff" />
+            <Text style={styles.shuffleButtonText}>Share Profile</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -81,7 +92,7 @@ const ArtistIntroHeader = ({ artist }: { artist: any }) => {
 const styles = StyleSheet.create({
   container: {
     position: "relative",
-    height: 360,
+    height: 380, // Slightly taller to accommodate reorganized buttons
     width: "100%",
     overflow: "hidden",
   },
@@ -95,7 +106,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: "75%",
+    height: "80%", // Increased gradient height
     zIndex: 1,
   },
   contentContainer: {
@@ -126,13 +137,16 @@ const styles = StyleSheet.create({
   },
   artistInfo: {
     position: "absolute",
-    bottom: 20,
+    bottom: 10,
     left: 20,
     right: 20,
+    // Artist name starts from more than halfway down the image
+    height: "60%", // This controls how far down the content starts
+    justifyContent: "flex-end",
   },
   artistName: {
     color: "#fff",
-    fontSize: 34,
+    fontSize: 45,
     fontWeight: "bold",
     marginBottom: 8,
     textShadowColor: "rgba(0,0,0,0.5)",
@@ -156,42 +170,22 @@ const styles = StyleSheet.create({
     color: "#ddd",
     fontSize: 15,
     lineHeight: 20,
-    marginBottom: 16,
+    marginBottom: 20, // Increased spacing before buttons
     maxWidth: "90%",
   },
-  actionButtons: {
+  buttonsContainer: {
+    marginTop: 20,
+    marginHorizontal: 16,
+  },
+  primaryActions: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
+    marginBottom: 12, // Space between button rows
   },
-  followButton: {
-    backgroundColor: "#fff",
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 30,
-    marginRight: 12,
-  },
-  followButtonText: {
-    color: "#000",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  playButton: {
-    backgroundColor: "#fff",
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  secondaryActions: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  moreButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.1)",
+    marginTop: 12,
   },
 
   circleButton: {
@@ -199,14 +193,55 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: 14,
-    borderRadius: 25,
-    marginBottom: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    flex: 1, // Takes remaining space
   },
   buttonText: {
     color: "white",
     fontWeight: "bold",
     marginLeft: 8,
+    fontSize: 14,
+  },
+  playButton: {
+    backgroundColor: "#fff",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  playButtonText: {
+    color: "#000",
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  shuffleButton: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  shuffleButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
+    marginLeft: 4,
+  },
+  moreButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.15)",
   },
 });
 

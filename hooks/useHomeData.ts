@@ -12,7 +12,7 @@ export function useHomeData() {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('https://api.mwonya.com/Requests/endpoints/allcombined.php?userID=mwUWTsKbYeIVPV20BN8or955NA1J43&page=1');
+      const response = await fetch('https://api.mwonya.com/v1/Requests/endpoints/allcombined.php?userID=mwUWTsKbYeIVPV20BN8or955NA1J43&page=1');
       if (!response.ok) {
         throw new Error('Failed to fetch data');
       }

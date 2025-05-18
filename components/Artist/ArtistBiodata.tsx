@@ -1,128 +1,174 @@
-// Optimized Artist Bio Footer
-import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
+import React, { useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Linking } from "react-native";
+import { FontAwesome } from "@expo/vector-icons";
+import FastImage from "@d11/react-native-fast-image";
+import { unknownTrackImageUri } from "@/constants/images";
 
-const ArtistBioFooter = ({ bioData, artist }: {bioData:any, artist: any}) => {
+interface Artist {
+  name?: string;
+  bio?: string;
+  coverimage?: string;
+  monthly?: number;
+  genre?: string;
+  RecordLable?: string;
+  twitterurl?: string;
+  instagramurl?: string;
+  facebookurl?: string;
+}
+
+const ArtistBioFooter = ({ artist }: { artist: Artist }) => {
   const [expanded, setExpanded] = useState(false);
-  
+
+  // Helper functions
+  const formatNumber = (num: any) => {
+    if (!num) return "0";
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+
+  const cleanBio = (bio: any) => {
+    if (!bio) return "No biography available";
+    return bio.replace(/\\n/g, '\n'); // Convert escaped newlines
+  };
+
   return (
     <View style={styles.container}>
-      {/* Section header */}
-      <View style={styles.headerRow}>
-        <Text style={styles.sectionHeading}>{bioData.heading || "About"}</Text>
-      </View>
-      
-      {/* Main bio content */}
-      <View style={styles.bioContainer}>
-        {/* Artist profile photo (different from cover image) */}
-        <Image 
-          source={{ uri: artist.coverimage }} 
-          style={styles.bio_coverimage} 
+      {/* Bio Section (Always shown) */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>About {artist?.name || "Artist"}</Text>
+        <View style={styles.bioRow}>
+        
+          <FastImage
+          source={{
+            uri: artist.coverimage ?? unknownTrackImageUri,
+            priority: FastImage.priority.normal,
+          }}
+          style={styles.artistImage}
+          resizeMode="cover"
         />
-        
-        <View style={styles.bioContent}>
-          {/* Bio text with expandable functionality */}
-          <Text style={styles.bioText} numberOfLines={4}>
-            {artist.bio}
-          </Text>
-          
-          {/* Read more/less toggle button */}
-          <TouchableOpacity 
-            style={styles.expandButton}
-            onPress={() => setExpanded(!expanded)}
-          >
-            <Text style={styles.expandButtonText}>
-              {expanded ? "Show less" : "Read more"}
+          <View style={styles.bioContent}>
+            <Text style={styles.bioText} numberOfLines={expanded ? undefined : 3}>
+              {cleanBio(artist?.bio)}
             </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-      
-      <View style={styles.divider} />
-      
-      {/* Stats section */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{artist.monthly}</Text>
-          <Text style={styles.statLabel}>Monthly Listeners</Text>
-        </View>
-        
-        {artist.followers && (
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{artist.followers}</Text>
-            <Text style={styles.statLabel}>Followers</Text>
+            {artist?.bio && artist.bio.length > 120 && (
+              <TouchableOpacity onPress={() => setExpanded(!expanded)}>
+                <Text style={styles.readMore}>
+                  {expanded ? "Show less" : "Read more"}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
-        )}
-      </View>
-      
-      <View style={styles.divider} />
-      
-      {/* Social links section */}
-      <View style={styles.socialSection}>
-        <Text style={styles.connectText}>Connect with {artist.name}</Text>
-        
-        <View style={styles.socialButtons}>
-          <TouchableOpacity style={styles.socialButton}>
-            <FontAwesome name="twitter" size={18} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton}>
-            <FontAwesome name="instagram" size={18} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton}>
-            <FontAwesome name="facebook" size={18} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.socialButton, styles.websiteButton]}>
-            <FontAwesome name="globe" size={18} color="white" />
-            <Text style={styles.websiteButtonText}>Official Website</Text>
-          </TouchableOpacity>
         </View>
       </View>
-      
-      {/* Attribution or additional info */}
-      {artist.label && (
-        <View style={styles.additionalInfo}>
-          <Text style={styles.additionalInfoText}>
-            ℗ {new Date().getFullYear()} {artist.label}
-          </Text>
+
+      {(artist?.monthly ) && <View style={styles.divider} />}
+
+      {/* Stats Section (Conditional) */}
+      {(artist?.monthly ) && (
+        <View style={styles.statsRow}>
+          {artist?.monthly && (
+            <View style={styles.stat}>
+              <Text style={styles.statNumber}>
+                {formatNumber(artist.monthly.toString().replace(/\D/g, ''))}
+              </Text>
+              <Text style={styles.statLabel}>Monthly Listeners</Text>
+            </View>
+          )}
+          
+         
         </View>
       )}
+
+      {(artist?.genre || artist?.RecordLable) && <View style={styles.divider} />}
+
+      {/* Genre & Label (Conditional) */}
+      {(artist?.genre || artist?.RecordLable) && (
+        <View style={styles.metaRow}>
+         
+          
+          {artist?.RecordLable && (
+            <View style={styles.metaItem}>
+              <Text style={styles.metaLabel}>Label</Text>
+              <Text style={styles.metaValue}>{artist.RecordLable}</Text>
+            </View>
+          )}
+
+{artist?.genre && (
+            <View style={styles.metaItem}>
+              <Text style={styles.metaLabel}>Genre</Text>
+              <Text style={styles.metaValue}>{artist.genre}</Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {(artist?.twitterurl || artist?.instagramurl || artist?.facebookurl) && (
+        <View style={styles.divider} />
+      )}
+
+      {/* Social Links (Conditional) */}
+      {(artist?.twitterurl || artist?.instagramurl || artist?.facebookurl) && (
+        <View style={styles.socialSection}>
+          <Text style={styles.sectionTitle}>Connect</Text>
+          <View style={styles.socialRow}>
+            {artist?.twitterurl && (
+              <TouchableOpacity 
+                style={styles.socialIcon}
+                onPress={() => artist.twitterurl && Linking.openURL(artist.twitterurl)}>
+                <FontAwesome name="twitter" size={18} color="white" />
+              </TouchableOpacity>
+            )}
+            
+            {artist?.instagramurl && (
+              <TouchableOpacity 
+                style={styles.socialIcon}
+                onPress={() => artist.instagramurl && Linking.openURL(artist.instagramurl)}>
+                <FontAwesome name="instagram" size={18} color="white" />
+              </TouchableOpacity>
+            )}
+            
+            {artist?.facebookurl && (
+              <TouchableOpacity 
+                style={styles.socialIcon}
+                onPress={() => artist.facebookurl && Linking.openURL(artist.facebookurl)}>
+                <FontAwesome name="facebook" size={18} color="white" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Footer (Always shown but minimal) */}
+      <View style={styles.divider} />
+      <Text style={styles.footerText}>
+        ℗ {new Date().getFullYear()} {artist?.RecordLable || "Independent"}
+      </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#121212',
-    borderRadius: 12,
-    padding: 20,
-    marginHorizontal: 16,
-    marginVertical: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    backgroundColor: "#121212",
+    borderRadius: 8,
+    margin: 16,
+    paddingBottom: 100
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
+  section: {
+    marginBottom: 12,
   },
-  sectionHeading: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
-    letterSpacing: 0.2,
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "white",
+    marginBottom: 12,
   },
-  bioContainer: {
-    flexDirection: 'row',
-    marginBottom: 20,
+  bioRow: {
+    flexDirection: "row",
   },
-  bio_coverimage: {
+  artistImage: {
     width: 80,
     height: 80,
-    borderRadius: 8,
+    borderRadius: 4,
     marginRight: 16,
   },
   bioContent: {
@@ -130,86 +176,77 @@ const styles = StyleSheet.create({
   },
   bioText: {
     fontSize: 14,
-    lineHeight: 22,
-    color: '#ddd',
-    marginBottom: 12,
+    lineHeight: 20,
+    color: "#B3B3B3",
+    marginBottom: 8,
   },
-  expandButton: {
-    alignSelf: 'flex-start',
-  },
-  expandButtonText: {
+  readMore: {
+    color: "#1DB954",
     fontSize: 14,
-    fontWeight: '600',
-    color: '#4A90E2',
+    fontWeight: "500",
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    marginVertical: 16,
+    backgroundColor: "#ffffff0f",
+    marginVertical: 12,
   },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: 10,
+  statsRow: {
+    flexDirection: "row",
+    marginVertical: 8,
   },
-  statItem: {
-    alignItems: 'center',
+  stat: {
+    paddingHorizontal: 12,
   },
-  statValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
+  statNumber: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "white",
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#aaa',
+    color: "#A7A7A7",
+  },
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 8,
+  },
+  metaItem: {
+    flex: 1,
+    paddingHorizontal: 8,
+  },
+  metaLabel: {
+    fontSize: 12,
+    color: "#A7A7A7",
+    marginBottom: 4,
+  },
+  metaValue: {
+    fontSize: 14,
+    color: "white",
+    fontWeight: "500",
   },
   socialSection: {
-    marginTop: 4,
-  },
-  connectText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
     marginBottom: 12,
   },
-  socialButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
+  socialRow: {
+    flexDirection: "row",
+    gap: 12,
   },
-  socialButton: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+  socialIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    marginBottom: 8,
+    backgroundColor: "#282828",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  websiteButton: {
-    width: 'auto',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
+  footerText: {
+    color: "#777",
+    fontSize: 11,
+    textAlign: "center",
+    marginTop: 4,
   },
-  websiteButtonText: {
-    color: 'white',
-    fontSize: 13,
-    fontWeight: '500',
-    marginLeft: 6,
-  },
-  additionalInfo: {
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  additionalInfoText: {
-    fontSize: 12,
-    color: '#777',
-  }
 });
 
 export default ArtistBioFooter;
