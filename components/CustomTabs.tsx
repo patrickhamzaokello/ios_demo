@@ -18,7 +18,7 @@ export default function CustomTabs({ state, descriptors, navigation }: BottomTab
                 <Typo size={10} color={isFocused ? colors.primary : colors.neutral400}>Home</Typo>
             </>
         ),
-        search: (isFocused: boolean) => (
+        '(search)': (isFocused: boolean) => (
             <>
                 <Octicons name='search' size={verticalScale(26)} color={isFocused ? colors.primary : colors.neutral400} />
 

@@ -2,12 +2,15 @@ import { colors } from "@/constants/theme";
 import useSearch from "@/hooks/useSearch"; // Custom hook for API search
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import React, { useState, useRef, useEffect } from "react";
+import { useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   FlatList,
   Image,
+  Keyboard,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -15,8 +18,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Animated,
-  Keyboard,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -67,19 +68,20 @@ const categories = [
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [submittedQuery, setSubmittedQuery] = useState(""); 
+  const [submittedQuery, setSubmittedQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showSuggestion, setShowSuggestion] = useState(false);
   const searchInputRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const router = useRouter();
 
-  const { 
-    data: searchResults, 
-    isLoading, 
-    error, 
+  const {
+    data: searchResults,
+    isLoading,
+    error,
     suggestedWord,
     totalResults,
-    hasMore
+    hasMore,
   } = useSearch(submittedQuery, currentPage);
 
   // Fade in animation for suggestion
@@ -134,7 +136,7 @@ export default function SearchScreen() {
 
   const handleLoadMore = () => {
     if (hasMore && !isLoading) {
-      setCurrentPage(prev => prev + 1);
+      setCurrentPage((prev) => prev + 1);
     }
   };
 
@@ -162,10 +164,6 @@ export default function SearchScreen() {
   );
 
   const renderSearchResult = ({ item }) => {
-
-    
-
-
     switch (item.type) {
       case "song":
         return (
@@ -176,24 +174,34 @@ export default function SearchScreen() {
               defaultSource={require("@/assets/unknown_track.png")} // Add a default image asset
             />
             <View style={styles.resultTextContainer}>
-              <Text style={styles.resultTitle}>{item.title}</Text>
+              <Text style={styles.resultTitle} numberOfLines={1}>{item.title}</Text>
               <View style={styles.resultMetaContainer}>
-                <Text style={styles.resultSubtitle}>{item.artist}</Text>
+                <Text style={styles.resultSubtitle} numberOfLines={1}>
+                  {item.artist}
+                </Text>
                 {item.album_name && (
                   <>
                     <Text style={styles.dotSeparator}>•</Text>
-                    <Text style={styles.resultSubtitle}>{item.album_name}</Text>
+                    <Text style={styles.resultSubtitle} numberOfLines={1}>
+                      {item.album_name}
+                    </Text>
                   </>
                 )}
               </View>
               <View style={styles.resultStats}>
                 <Ionicons name="play" size={12} color="#999" />
-                <Text style={styles.statsText}>{item.plays.toLocaleString()}</Text>
+                <Text style={styles.statsText}>
+                  {item.plays.toLocaleString()}
+                </Text>
                 <Text style={styles.dotSeparator}>•</Text>
                 <Text style={styles.statsText}>{item.track_duration}</Text>
                 {item.verified && (
                   <View style={styles.verifiedBadge}>
-                    <Ionicons name="checkmark-circle" size={12} color="#1DB954" />
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={12}
+                      color="#1DB954"
+                    />
                     <Text style={styles.verifiedText}>Verified</Text>
                   </View>
                 )}
@@ -206,14 +214,28 @@ export default function SearchScreen() {
         );
       case "artist":
         return (
-          <TouchableOpacity style={styles.resultItem}>
+          <TouchableOpacity
+            style={styles.resultItem}
+            onPress={() =>
+              router.push({
+                pathname: "/(tabs)/(search)/home_artist_details",
+                params: {
+                  artist_id: item.id,
+                },
+              })
+            }
+          >
             <Image
               source={{ uri: item.artworkPath }}
               style={[styles.resultImage, styles.artistImage]}
             />
             <View style={styles.resultTextContainer}>
-              <Text style={styles.resultTitle}>{item.artist}</Text>
-              <Text style={styles.resultSubtitle}>Artist</Text>
+              <Text style={styles.resultTitle} numberOfLines={2}>
+                {item.artist}
+              </Text>
+              <Text style={styles.resultSubtitle} numberOfLines={2}>
+                Artist
+              </Text>
             </View>
             <TouchableOpacity style={styles.followButton}>
               <Text style={styles.followButtonText}>Follow</Text>
@@ -222,18 +244,32 @@ export default function SearchScreen() {
         );
       case "album":
         return (
-          <TouchableOpacity style={styles.resultItem}>
+          <TouchableOpacity
+            style={styles.resultItem}
+            onPress={() =>
+              router.push({
+                pathname: "/(tabs)/(search)/new_release",
+                params: {
+                  releaseid: item.id,
+                },
+              })
+            }
+          >
             <Image
               source={{ uri: item.artworkPath }}
               style={styles.resultImage}
             />
             <View style={styles.resultTextContainer}>
-              <Text style={styles.resultTitle}>{item.title}</Text>
-              <Text style={styles.resultSubtitle}>{item.artist}</Text>
+              <Text style={styles.resultTitle} numberOfLines={2}>
+                {item.title}
+              </Text>
+              <Text style={styles.resultSubtitle} numberOfLines={2}>
+                {item.artist}
+              </Text>
             </View>
-            <TouchableOpacity style={styles.actionButton}>
-              <Ionicons name="ellipsis-horizontal" size={20} color="#999" />
-            </TouchableOpacity>
+            <View style={styles.viewDetailsButton}>
+              <Text style={styles.viewDetailsText}>Open</Text>
+            </View>
           </TouchableOpacity>
         );
       case "playlist":
@@ -297,16 +333,11 @@ export default function SearchScreen() {
 
       {/* Suggested search term */}
       {showSuggestion && suggestedWord && (
-        <Animated.View 
-          style={[
-            styles.suggestionContainer, 
-            { opacity: fadeAnim }
-          ]}
+        <Animated.View
+          style={[styles.suggestionContainer, { opacity: fadeAnim }]}
         >
-          <Text style={styles.suggestionText}>
-            {suggestedWord}
-          </Text>
-          <TouchableOpacity 
+          <Text style={styles.suggestionText}>{suggestedWord}</Text>
+          <TouchableOpacity
             style={styles.suggestionButton}
             onPress={handleUseSuggestion}
           >
@@ -330,28 +361,41 @@ export default function SearchScreen() {
       {isSearching && searchResults?.length > 0 && (
         <View style={styles.resultsInfoContainer}>
           <Text style={styles.resultsInfoText}>
-            {totalResults} {totalResults === 1 ? 'result' : 'results'} for "{submittedQuery}"
+            {totalResults} {totalResults === 1 ? "result" : "results"} for "
+            {submittedQuery}"
           </Text>
         </View>
       )}
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={isSearching && searchResults?.length === 0 && !isLoading ? { flex: 1 } : {}}
+        contentContainerStyle={
+          isSearching && searchResults?.length === 0 && !isLoading
+            ? { flex: 1 }
+            : {}
+        }
       >
         {isSearching ? (
           /* Search Results */
           <View style={styles.resultsContainer}>
             {isLoading && currentPage === 1 ? (
-              <ActivityIndicator size="large" color="#FFF" style={styles.loadingIndicator} />
+              <ActivityIndicator
+                size="large"
+                color="#FFF"
+                style={styles.loadingIndicator}
+              />
             ) : error ? (
               <View style={styles.errorContainer}>
-                <Ionicons name="alert-circle-outline" size={64} color="#FF2D55" />
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={64}
+                  color="#FF2D55"
+                />
                 <Text style={styles.errorText}>
                   Something went wrong. Please try again.
                 </Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.retryButton}
                   onPress={() => handleSearchSubmit()}
                 >
@@ -366,11 +410,13 @@ export default function SearchScreen() {
                     renderItem={renderSearchResult}
                     keyExtractor={(item) => item.id}
                     scrollEnabled={false}
-                    ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+                    ItemSeparatorComponent={() => (
+                      <View style={styles.itemSeparator} />
+                    )}
                   />
-                  
+
                   {hasMore && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.loadMoreButton}
                       onPress={handleLoadMore}
                       disabled={isLoading}
@@ -399,8 +445,8 @@ export default function SearchScreen() {
               </View>
               <View style={styles.recentList}>
                 {recentSearches.map((search, index) => (
-                  <TouchableOpacity 
-                    key={index} 
+                  <TouchableOpacity
+                    key={index}
                     style={styles.recentItem}
                     onPress={() => handleRecentSearch(search)}
                   >
@@ -588,7 +634,7 @@ const styles = StyleSheet.create({
   },
   resultsContainer: {
     marginTop: 8,
-    paddingBottom: 200
+    paddingBottom: 200,
   },
   resultItem: {
     flexDirection: "row",
@@ -663,6 +709,18 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   followButtonText: {
+    color: "#FFF",
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  viewDetailsButton: {
+    backgroundColor: "#333",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginLeft: 8,
+  },
+  viewDetailsText: {
     color: "#FFF",
     fontSize: 12,
     fontWeight: "500",
