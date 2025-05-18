@@ -162,6 +162,10 @@ export default function SearchScreen() {
   );
 
   const renderSearchResult = ({ item }) => {
+
+    
+
+
     switch (item.type) {
       case "song":
         return (
