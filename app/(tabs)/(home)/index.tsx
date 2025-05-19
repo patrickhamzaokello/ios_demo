@@ -16,10 +16,12 @@ import { DJCollectionSection } from '@/components/home/DJCollectionSection';
 import { useQueue } from '@/store/queue';
 import TrackPlayer, { Track } from 'react-native-track-player';
 import { generateTracksListId } from '@/helpers/miscellaneous';
+import { useRouter } from "expo-router";
 
 
 export default function HomeScreen() {
     const { data, loading, error, refetch } = useHomeData();
+    const router = useRouter();
 
     const queueOffset = useRef(0)
         const { activeQueueId, setActiveQueueId } = useQueue()	
@@ -61,7 +63,7 @@ export default function HomeScreen() {
     const renderSection = useCallback((section: any, index: number) => {
         switch (section.type) {
             case 'hero':
-                return <HeroSection key={index} data={section} />;
+                return <HeroSection key={index} data={section} onNotificationsPress={() => router.push('/(home)/home_access_notifications')} />;
             case 'newRelease':
                 return <NewReleaseSection key={index} data={section} />;
             case 'slider':

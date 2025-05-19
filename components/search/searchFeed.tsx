@@ -4,12 +4,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
+import TrackPlayer, {
+  Track,
+  useActiveTrack,
+  useIsPlaying,
+} from "react-native-track-player";
+
 import {
   ActivityIndicator,
   Animated,
   Dimensions,
   FlatList,
-  Image,
   Keyboard,
   ScrollView,
   StatusBar,
@@ -19,6 +24,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import FastImage from "@d11/react-native-fast-image";
+import LoaderKit from "react-native-loader-kit";
+import { unknownTrackImageUri } from "@/constants/images";
 
 const { width } = Dimensions.get("window");
 const CATEGORY_WIDTH = width * 0.4;
@@ -71,9 +79,12 @@ export default function SearchScreen() {
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showSuggestion, setShowSuggestion] = useState(false);
-  const searchInputRef = useRef(null);
+  const searchInputRef = useRef<TextInput>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const router = useRouter();
+
+  const activeTrack = useActiveTrack();
+  const { playing } = useIsPlaying();
 
   const {
     data: searchResults,
@@ -99,7 +110,7 @@ export default function SearchScreen() {
     }
   }, [suggestedWord]);
 
-  const handleSearch = (text) => {
+  const handleSearch = (text: string) => {
     setSearchQuery(text);
     if (text.length === 0) {
       setSubmittedQuery("");
@@ -140,21 +151,65 @@ export default function SearchScreen() {
     }
   };
 
-  const handleRecentSearch = (query) => {
+  const handleRecentSearch = (query: string) => {
     setSearchQuery(query);
     setSubmittedQuery(query);
     setIsSearching(true);
     setCurrentPage(1);
   };
 
-  const renderCategory = ({ item }) => (
+  const convertToTrack = (item: any) => {
+    return {
+      id: item.id,
+      url: item.path,
+      title: item.title,
+      artist: item.artist,
+      artwork: item.artworkPath,
+      duration: parseInt(item.track_duration) || 0,
+      // Add any other Track properties you need
+    };
+  };
+
+  // Handle playing a single track
+  const handleTrackSelect = async (
+    selectedTrack: ReturnType<typeof convertToTrack>
+  ) => {
+    try {
+      // Get current queue
+      const queue = await TrackPlayer.getQueue();
+
+      // Check if the track is already in the queue
+      const trackIndex = queue.findIndex(
+        (track) => track.id === selectedTrack.id
+      );
+
+      if (trackIndex > -1) {
+        // If track exists in queue, play it directly
+        await TrackPlayer.skip(trackIndex);
+      } else {
+        // If not in queue, reset and add the new track
+        await TrackPlayer.reset();
+        await TrackPlayer.add(selectedTrack);
+      }
+
+      // Start playing
+      await TrackPlayer.play();
+
+      // Optionally: navigate to player screen if needed
+      // router.push('/player');
+    } catch (error) {
+      console.error("Error playing track:", error);
+      // You might want to show an error message to the user here
+    }
+  };
+
+  const renderCategory = ({ item }: { item: any }) => (
     <TouchableOpacity style={styles.categoryItem}>
       <View style={styles.categoryImageContainer}>
-        <Image
+        <FastImage
           source={{
-            uri:
-              item.image ||
-              "https://via.placeholder.com/200/222222/ffffff?text=Music",
+            uri: item.image ?? unknownTrackImageUri,
+            priority: FastImage.priority.normal,
           }}
           style={styles.categoryImage}
         />
@@ -163,18 +218,54 @@ export default function SearchScreen() {
     </TouchableOpacity>
   );
 
-  const renderSearchResult = ({ item }) => {
+  const renderSearchResult = ({ item }: { item: any }) => {
+    const track = convertToTrack(item);
+    const isActiveTrack = activeTrack?.url === track.url;
     switch (item.type) {
       case "song":
         return (
-          <TouchableOpacity style={styles.resultItem}>
-            <Image
-              source={{ uri: item.artworkPath }}
-              style={styles.resultImage}
-              defaultSource={require("@/assets/unknown_track.png")} // Add a default image asset
-            />
+          <TouchableOpacity
+            style={styles.resultItem}
+            onPress={() => handleTrackSelect(track)}
+          >
+            <View style={{ position: "relative" }}>
+              <FastImage
+                source={{
+                  uri: item.artworkPath ?? unknownTrackImageUri,
+                  priority: FastImage.priority.normal,
+                }}
+                style={{
+                  ...styles.resultImage,
+                  opacity: isActiveTrack ? 0.6 : 1,
+                }}
+              />
+              {isActiveTrack &&
+                (playing ? (
+                  <LoaderKit
+                    style={styles.trackPlayingIconIndicator}
+                    name="LineScaleParty"
+                    color={colors.primary}
+                  />
+                ) : (
+                  <Ionicons
+                    style={styles.trackPausedIndicator}
+                    name="play"
+                    size={24}
+                    color={colors.primary}
+                  />
+                ))}
+            </View>
+
             <View style={styles.resultTextContainer}>
-              <Text style={styles.resultTitle} numberOfLines={1}>{item.title}</Text>
+              <Text
+                style={{
+                  ...styles.resultTitle,
+                  color: isActiveTrack ? colors.primary : colors.text,
+                }}
+                numberOfLines={1}
+              >
+                {item.title}
+              </Text>
               <View style={styles.resultMetaContainer}>
                 <Text style={styles.resultSubtitle} numberOfLines={1}>
                   {item.artist}
@@ -225,8 +316,11 @@ export default function SearchScreen() {
               })
             }
           >
-            <Image
-              source={{ uri: item.artworkPath }}
+            <FastImage
+              source={{
+                uri: item.artworkPath ?? unknownTrackImageUri,
+                priority: FastImage.priority.normal,
+              }}
               style={[styles.resultImage, styles.artistImage]}
             />
             <View style={styles.resultTextContainer}>
@@ -255,9 +349,15 @@ export default function SearchScreen() {
               })
             }
           >
-            <Image
-              source={{ uri: item.artworkPath }}
-              style={styles.resultImage}
+            <FastImage
+              source={{
+                uri: item.artworkPath ?? unknownTrackImageUri,
+                priority: FastImage.priority.normal,
+              }}
+              style={{
+                ...styles.resultImage,
+                opacity: isActiveTrack ? 0.6 : 1,
+              }}
             />
             <View style={styles.resultTextContainer}>
               <Text style={styles.resultTitle} numberOfLines={2}>
@@ -275,9 +375,15 @@ export default function SearchScreen() {
       case "playlist":
         return (
           <TouchableOpacity style={styles.resultItem}>
-            <Image
-              source={{ uri: item.artworkPath }}
-              style={styles.resultImage}
+            <FastImage
+              source={{
+                uri: item.artworkPath ?? unknownTrackImageUri,
+                priority: FastImage.priority.normal,
+              }}
+              style={{
+                ...styles.resultImage,
+                opacity: isActiveTrack ? 0.6 : 1,
+              }}
             />
             <View style={styles.resultTextContainer}>
               <Text style={styles.resultTitle}>{item.title}</Text>
@@ -491,7 +597,7 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#121212",
+    backgroundColor: colors.neutral900,
   },
   header: {
     paddingHorizontal: 16,
@@ -505,6 +611,18 @@ const styles = StyleSheet.create({
   searchContainer: {
     paddingHorizontal: 16,
     marginBottom: 8,
+  },
+  trackPlayingIconIndicator: {
+    position: "absolute",
+    top: 18,
+    left: 16,
+    width: 16,
+    height: 16,
+  },
+  trackPausedIndicator: {
+    position: "absolute",
+    top: 14,
+    left: 14,
   },
   searchBar: {
     flexDirection: "row",

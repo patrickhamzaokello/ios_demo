@@ -26,19 +26,19 @@ export const QueueControls = ({ tracks, style, ...viewProps }: QueueControlsProp
 		<View style={[{ flexDirection: 'row', columnGap: 16 , paddingHorizontal: 20}, style]} {...viewProps}>
 			{/* Play button */}
 			<View style={{ flex: 1 }}>
-				<TouchableOpacity onPress={handlePlay} activeOpacity={0.8} style={styles.button}>
-					<Ionicons name="play" size={22} color={colors.primary} />
+				<TouchableOpacity onPress={handlePlay} activeOpacity={0.8} style={styles.activeButton}>
+					<Ionicons name="play" size={22} color={colors.text} />
 
-					<Text style={styles.buttonText}>Play</Text>
+					<Text style={{color: colors.text, fontWeight: 600}}>Play</Text>
 				</TouchableOpacity>
 			</View>
 
 			{/* Shuffle button */}
 			<View style={{ flex: 1 }}>
 				<TouchableOpacity onPress={handleShufflePlay} activeOpacity={0.8} style={styles.button}>
-					<Ionicons name={'shuffle-sharp'} size={24} color={colors.primary} />
+					<Ionicons name={'shuffle-sharp'} size={24} color={colors.text} />
 
-					<Text style={styles.buttonText}>Shuffle</Text>
+					<Text style={{color: colors.text, fontWeight: 600}}>Shuffle</Text>
 				</TouchableOpacity>
 			</View>
 		</View>
@@ -46,6 +46,16 @@ export const QueueControls = ({ tracks, style, ...viewProps }: QueueControlsProp
 }
 
 const styles = StyleSheet.create({
+
+	activeButton: {
+		padding: 12,
+		backgroundColor: colors.primary,
+		borderRadius: 8,
+		flexDirection: 'row',
+		justifyContent: 'center',
+		alignItems: 'center',
+		columnGap: 8,
+	},
 	button: {
 		padding: 12,
 		backgroundColor: 'rgba(47, 47, 47, 0.5)',
@@ -55,11 +65,5 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		columnGap: 8,
 	},
-	buttonText: {
-		...defaultStyles.text,
-		color: colors.primary,
-		fontWeight: '600',
-		fontSize: 18,
-		textAlign: 'center',
-	},
+
 })
