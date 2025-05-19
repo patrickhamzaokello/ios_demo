@@ -63,7 +63,7 @@ export default function HomeScreen() {
     const renderSection = useCallback((section: any, index: number) => {
         switch (section.type) {
             case 'hero':
-                return <HeroSection key={index} data={section} onNotificationsPress={() => router.push('/(home)/home_access_notifications')} />;
+                return <HeroSection key={index} data={section} onNotificationsPress={() => router.push('/(tabs)/(home)/home_access_notifications')} />;
             case 'newRelease':
                 return <NewReleaseSection key={index} data={section} />;
             case 'slider':
