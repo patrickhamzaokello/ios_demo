@@ -1,11 +1,13 @@
 import { colors } from "@/constants/theme";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   FlatList,
+  RefreshControl,
   StatusBar,
   StyleSheet,
   Text,
@@ -15,95 +17,161 @@ import {
 import FastImage from "@d11/react-native-fast-image";
 import { unknownTrackImageUri } from "@/constants/images";
 import useNotificationList from "@/hooks/useUserNotificationList";
+import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get("window");
 
-// Icons map for different notification types
-const NotificationIcon = ({ type }) => {
-  switch (type) {
-    case "song":
-      return <Ionicons name="musical-note" size={18} color={colors.primary} />;
-    case "album":
-      return <Ionicons name="disc" size={18} color={colors.primary} />;
-    case "artist":
-      return <Ionicons name="person" size={18} color={colors.primary} />;
-    case "playlist":
-      return <Ionicons name="list" size={18} color={colors.primary} />;
-    default:
-      return <Ionicons name="notifications" size={18} color={colors.primary} />;
-  }
+// Get notification type color and icon
+const getNotificationConfig = (type) => {
+  const configs = {
+    song: {
+      color: colors.accent1, 
+      icon: "music-note"
+    },
+    album: {
+      color: colors.accent2, 
+      icon: "album"
+    },
+    artist: {
+      color: colors.accent3, 
+      icon: "account-music"
+    },
+    playlist: {
+      color: colors.primary, 
+      icon: "playlist-music"
+    },
+    default: {
+      color: colors.primary, 
+      icon: "bell"
+    }
+  };
+  
+  return configs[type] || configs.default;
 };
 
-// Format date to relative time (e.g. "2 hours ago")
+// Format date to readable format
 const formatRelativeTime = (dateString) => {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now - date;
   const diffMins = Math.floor(diffMs / 60000);
   
-  if (diffMins < 60) {
-    return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
-  }
+  if (diffMins < 5) return "now";
+  if (diffMins < 60) return `${diffMins}m`;
   
   const diffHrs = Math.floor(diffMins / 60);
-  if (diffHrs < 24) {
-    return `${diffHrs} hr${diffHrs !== 1 ? 's' : ''} ago`;
-  }
+  if (diffHrs < 24) return `${diffHrs}h`;
   
   const diffDays = Math.floor(diffHrs / 24);
-  if (diffDays < 7) {
-    return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
-  }
+  if (diffDays === 1) return "1d";
+  if (diffDays < 7) return `${diffDays}d`;
   
-  const diffWeeks = Math.floor(diffDays / 7);
-  return `${diffWeeks} week${diffWeeks !== 1 ? 's' : ''} ago`;
+  const month = date.toLocaleString('default', { month: 'short' });
+  const day = date.getDate();
+  return `${month} ${day}`;
 };
 
-// Individual notification item component
-const NotificationItem = ({ item, onPress }) => {
+// Main notification item component
+const NotificationItem = ({ item, onPress, unread = true }) => {
+  const [scaleAnim] = useState(new Animated.Value(1));
+  const config = getNotificationConfig(item.type);
+  
+  const handlePress = () => {
+    // Animation on press
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.98,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    
+    // Haptic feedback
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    // Navigate
+    onPress(item);
+  };
+  
   return (
-    <TouchableOpacity 
-      style={styles.notificationItem} 
-      onPress={() => onPress(item)}
-      activeOpacity={0.7}
+    <Animated.View
+      style={[
+        styles.itemContainer,
+        { transform: [{ scale: scaleAnim }] }
+      ]}
     >
-      <FastImage
-        source={{ uri: item.artworkPath || unknownTrackImageUri }}
-        style={styles.notificationImage}
-      />
-      <View style={styles.notificationContent}>
-        <View style={styles.notificationHeader}>
-          <Text style={styles.notificationTitle} numberOfLines={1}>
-            {item.title}
-          </Text>
-          <NotificationIcon type={item.type} />
+      <TouchableOpacity 
+        style={styles.notificationItem}
+        onPress={handlePress}
+        activeOpacity={0.7}
+      >
+        <View style={styles.imageContainer}>
+          <FastImage
+            source={{ uri: item.artworkPath || unknownTrackImageUri }}
+            style={styles.notificationImage}
+          />
+          <View style={[styles.typeIndicator, { backgroundColor: config.color }]}>
+            <MaterialCommunityIcons name={config.icon} size={14} color="#FFF" />
+          </View>
         </View>
-        <Text style={styles.notificationDescription} numberOfLines={2}>
-          {item.description}
-        </Text>
-        <View style={styles.notificationFooter}>
-          <Text style={styles.notificationArtist}>
-            {item.artist}
-          </Text>
-          <Text style={styles.notificationTime}>
-            {formatRelativeTime(item.date)}
-          </Text>
+        
+        <View style={styles.notificationContent}>
+          <View style={styles.contentHeader}>
+            <Text style={styles.notificationTitle} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <Text style={styles.timeStamp}>{formatRelativeTime(item.date)}</Text>
+          </View>
+          
+          <Text style={styles.notificationDescription} numberOfLines={2}>{item.description}</Text>
+          
+          {unread && <View style={styles.unreadDot} />}
         </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
 // Section header component
-const SectionHeader = ({ title }) => (
+const SectionHeader = ({ title}:{title: string }) => (
   <View style={styles.sectionHeader}>
     <Text style={styles.sectionHeaderText}>{title}</Text>
+  </View>
+);
+
+// Empty state component
+const EmptyState = () => (
+  <View style={styles.emptyContainer}>
+    <MaterialCommunityIcons name="bell-off-outline" size={40} color={colors.neutral600} />
+    <Text style={styles.emptyTitle}>All caught up!</Text>
+    <Text style={styles.emptyDescription}>No notifications right now</Text>
+  </View>
+);
+
+// Error state component
+const ErrorState = ({ onRetry }) => (
+  <View style={styles.emptyContainer}>
+    <MaterialCommunityIcons name="alert-circle-outline" size={40} color={colors.error} />
+    <Text style={styles.emptyTitle}>Couldn't load notifications</Text>
+    <TouchableOpacity 
+      style={styles.retryButton}
+      onPress={onRetry}
+    >
+      <Text style={styles.retryButtonText}>Retry</Text>
+    </TouchableOpacity>
   </View>
 );
 
 export default function NotificationPage() {
   const [userID, setUserID] = useState("mwUWTsKbYeIVPV20BN8or955NA1J43");
   const [currentPage, setCurrentPage] = useState(1);
+  const [refreshing, setRefreshing] = useState(false);
+  const [readNotifications, setReadNotifications] = useState([]);
   const router = useRouter();
 
   const {
@@ -112,22 +180,38 @@ export default function NotificationPage() {
     error,
     totalResults,
     hasMore,
+    refetch
   } = useNotificationList(userID, currentPage);
 
+  // Refresh control handler
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    refetch().finally(() => {
+      setRefreshing(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    });
+  }, [refetch]);
+
+  // Load more handler
   const handleLoadMore = () => {
-    if (hasMore && !isLoading) {
+    if (hasMore && !isLoading && !refreshing) {
       setCurrentPage(currentPage + 1);
     }
   };
 
+  // Mark notification as read when pressed
   const handleNotificationPress = (item) => {
-    // Navigation based on notification type
+    if (!readNotifications.includes(item.id)) {
+      setReadNotifications(prev => [...prev, item.id]);
+    }
+    
+    // Navigate based on type
     switch (item.type) {
       case "song":
         router.push(`/song/${item.id}`);
         break;
       case "album":
-        router.push(`/(tabs)/(home)/new_release/${item.id}`);
+        router.push(`/album/${item.id}`);
         break;
       case "artist":
         router.push(`/artist/${item.artistID}`);
@@ -140,8 +224,49 @@ export default function NotificationPage() {
     }
   };
 
+  // Flatten and process notification data
+  const processedData = React.useMemo(() => {
+    if (!notificationLists || notificationLists.length === 0) return [];
+    
+    return notificationLists.flatMap((section, sectionIndex) => {
+      // Add section header as a special item
+      const sectionItems = [
+        {
+          id: `section-${sectionIndex}`,
+          isSection: true,
+          title: section.heading
+        }
+      ];
+      
+      // Add actual notification items
+      const notificationItems = section.notification_List.map(item => ({
+        ...item,
+        isSection: false,
+        sectionHeading: section.heading
+      }));
+      
+      return [...sectionItems, ...notificationItems];
+    });
+  }, [notificationLists]);
+
+  // List item renderer that handles both section headers and items
+  const renderItem = ({ item }) => {
+    if (item.isSection) {
+      return <SectionHeader title={item.title} />;
+    }
+    
+    return (
+      <NotificationItem 
+        item={item} 
+        onPress={handleNotificationPress} 
+        unread={!readNotifications.includes(item.id)}
+      />
+    );
+  };
+
+  // Footer loading indicator
   const renderFooter = () => {
-    if (!isLoading) return null;
+    if (!isLoading || refreshing) return null;
     return (
       <View style={styles.loaderFooter}>
         <ActivityIndicator size="small" color={colors.primary} />
@@ -149,92 +274,61 @@ export default function NotificationPage() {
     );
   };
 
-  const renderItem = ({ item }) => {
-    return <NotificationItem item={item} onPress={handleNotificationPress} />;
-  };
-
-  const renderSectionHeader = ({ section }) => {
-    return <SectionHeader title={section.heading} />;
-  };
-
-  // Flatten the data structure for FlatList
-  const flattenedData = notificationLists?.flatMap(section => 
-    section.notification_List.map(item => ({
-      ...item,
-      sectionHeading: section.heading
-    }))
-  ) || [];
-
-  // Group the flattened data by section heading
-  const groupedData = flattenedData.reduce((acc, item) => {
-    const existingSection = acc.find(section => section.heading === item.sectionHeading);
-    if (existingSection) {
-      existingSection.data.push(item);
-    } else {
-      acc.push({
-        heading: item.sectionHeading,
-        data: [item]
-      });
-    }
-    return acc;
-  }, []);
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Notifications</Text>
+        {processedData.some(item => !item.isSection && !readNotifications.includes(item.id)) && (
+          <TouchableOpacity 
+            style={styles.markAllButton}
+            onPress={() => {
+              const allIds = processedData
+                .filter(item => !item.isSection)
+                .map(item => item.id);
+              setReadNotifications(allIds);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }}
+          >
+            <Text style={styles.markAllButtonText}>Mark all read</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {isLoading && flattenedData.length === 0 ? (
+      {/* Content */}
+      {isLoading && processedData.length === 0 ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : error ? (
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color="#666" />
-          <Text style={styles.errorText}>
-            Couldn't load notifications
-          </Text>
-          <TouchableOpacity 
-            style={styles.retryButton}
-            onPress={() => setCurrentPage(1)}
-          >
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      ) : flattenedData.length === 0 ? (
-        <View style={styles.noResultsContainer}>
-          <Ionicons name="notifications-off-outline" size={64} color="#666" />
-          <Text style={styles.noResultsText}>
-            No notifications yet
-          </Text>
-          <Text style={styles.noResultsHint}>
-            New updates will appear here
-          </Text>
-        </View>
+        <ErrorState onRetry={() => {
+          setCurrentPage(1);
+          refetch();
+        }} />
+      ) : processedData.length === 0 ? (
+        <EmptyState />
       ) : (
         <FlatList
-          data={flattenedData}
+          data={processedData}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => 
+            item.isSection ? item.id : `notification-${item.id}`
+          }
           contentContainerStyle={styles.list}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={renderFooter}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          stickyHeaderIndices={groupedData.map((_, index) => 
-            index === 0 ? 0 : 
-            flattenedData.findIndex(item => item.sectionHeading === groupedData[index].heading)
-          )}
-          ListHeaderComponent={() => (
-            <>
-              {groupedData.map((section, index) => (
-                <SectionHeader key={`section-${index}`} title={section.heading} />
-              ))}
-            </>
-          )}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+              progressBackgroundColor={colors.neutral800}
+            />
+          }
         />
       )}
     </View>
@@ -247,16 +341,30 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral900,
   },
   header: {
-    paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: colors.neutral800,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "700",
     color: "#FFF",
+  },
+  markAllButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  markAllButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -264,122 +372,119 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   list: {
-    paddingBottom: 24,
+    paddingBottom: 16,
+  },
+  itemContainer: {
+    backgroundColor: colors.neutral900,
   },
   sectionHeader: {
-    backgroundColor: colors.neutral900,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral800,
+    paddingVertical: 8,
   },
   sectionHeaderText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
-    color: colors.primary,
+    color: colors.neutral400,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   notificationItem: {
     flexDirection: "row",
-    padding: 16,
-    backgroundColor: colors.neutral900,
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  imageContainer: {
+    position: 'relative',
   },
   notificationImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
+    width: 46,
+    height: 46,
+    borderRadius: 6,
     backgroundColor: colors.neutral800,
+  },
+  typeIndicator: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.neutral900,
   },
   notificationContent: {
     flex: 1,
     marginLeft: 12,
-    justifyContent: "space-between",
+    position: 'relative',
   },
-  notificationHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  contentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2, 
+  },
+  timeStamp: {
+    fontSize: 12,
+    color: colors.neutral500,
   },
   notificationTitle: {
-    flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
     color: "#FFF",
+    flex: 1,
     marginRight: 8,
   },
   notificationDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.neutral400,
-    marginTop: 4,
-    marginBottom: 4,
     lineHeight: 18,
   },
-  notificationFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 2,
-  },
-  notificationArtist: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: colors.primary,
-  },
-  notificationTime: {
-    fontSize: 11,
-    color: colors.neutral500,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: colors.neutral800,
-    marginLeft: 16 + 56 + 12, // Aligns with content, not image
+  unreadDot: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
   },
   loaderFooter: {
-    paddingVertical: 20,
+    paddingVertical: 16,
     alignItems: "center",
   },
-  noResultsContainer: {
+  emptyContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
   },
-  noResultsText: {
+  emptyTitle: {
     color: "#FFF",
     fontSize: 18,
     fontWeight: "600",
     textAlign: "center",
     marginTop: 16,
+    marginBottom: 6,
   },
-  noResultsHint: {
-    color: "#999",
+  emptyDescription: {
+    color: colors.neutral500,
     fontSize: 14,
     textAlign: "center",
-    marginTop: 8,
-  },
-  errorContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  errorText: {
-    color: "#FFF",
-    fontSize: 18,
-    fontWeight: "600",
-    textAlign: "center",
-    marginTop: 16,
   },
   retryButton: {
     marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
     backgroundColor: colors.primary,
     borderRadius: 8,
   },
   retryButtonText: {
     color: "#FFF",
     fontWeight: "600",
+    fontSize: 14,
   },
 });

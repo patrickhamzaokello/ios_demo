@@ -1,15 +1,15 @@
 import { colors } from "@/constants/theme";
 import useSearch from "@/hooks/useSearch"; // Custom hook for API search
 import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import TrackPlayer, {
-  Track,
   useActiveTrack,
   useIsPlaying,
 } from "react-native-track-player";
 
+import { unknownTrackImageUri } from "@/constants/images";
+import FastImage from "@d11/react-native-fast-image";
 import {
   ActivityIndicator,
   Animated,
@@ -24,9 +24,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import FastImage from "@d11/react-native-fast-image";
 import LoaderKit from "react-native-loader-kit";
-import { unknownTrackImageUri } from "@/constants/images";
+import BrowseCategories from "./BrowseCategories";
+import RecentSearches from "./RecentSearches";
 
 const { width } = Dimensions.get("window");
 const CATEGORY_WIDTH = width * 0.4;
@@ -541,52 +541,11 @@ export default function SearchScreen() {
         ) : (
           /* Browse Content */
           <>
-            {/* Recent Searches */}
-            <View style={styles.recentContainer}>
-              <View style={styles.recentHeader}>
-                <Text style={styles.sectionTitle}>Recent Searches</Text>
-                <TouchableOpacity>
-                  <Text style={styles.clearText}>Clear</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.recentList}>
-                {recentSearches.map((search, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.recentItem}
-                    onPress={() => handleRecentSearch(search)}
-                  >
-                    <BlurView
-                      intensity={20}
-                      tint="dark"
-                      style={styles.recentItemBlur}
-                    >
-                      <Ionicons
-                        name="time-outline"
-                        size={14}
-                        color="#FFF"
-                        style={styles.recentIcon}
-                      />
-                      <Text style={styles.recentText}>{search}</Text>
-                    </BlurView>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Browse Categories */}
-            <View style={styles.categoriesContainer}>
-              <Text style={styles.sectionTitle}>Browse Categories</Text>
-              <FlatList
-                data={categories}
-                renderItem={renderCategory}
-                keyExtractor={(item) => item.id}
-                horizontal={false}
-                numColumns={2}
-                scrollEnabled={false}
-                contentContainerStyle={styles.categoriesGrid}
-              />
-            </View>
+            <RecentSearches
+              searches={recentSearches}
+              onSearch={handleRecentSearch}
+            />
+            <BrowseCategories categories={categories} />
           </>
         )}
       </ScrollView>
@@ -673,48 +632,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 16,
-  },
-  recentContainer: {
-    marginBottom: 24,
-  },
-  recentHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#FFF",
-    marginBottom: 12,
-  },
-  clearText: {
-    fontSize: 16,
-    color: "#FF2D55",
-  },
-  recentList: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  recentItem: {
-    marginRight: 10,
-    marginBottom: 10,
-  },
-  recentItemBlur: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(60, 60, 60, 0.5)",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-  },
-  recentIcon: {
-    marginRight: 6,
-  },
-  recentText: {
-    fontSize: 14,
-    color: "#FFF",
   },
   categoriesContainer: {
     marginBottom: 24,
