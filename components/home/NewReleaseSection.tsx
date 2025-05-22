@@ -171,10 +171,10 @@ function MusicCard({
             </Text>
             
             <View style={styles.tagContainer}>
-              <View style={[styles.releaseTag, { backgroundColor: primaryColor }]}>
+              <View style={[styles.releaseTag, { backgroundColor: colors.white }]}>
                 <Text style={styles.tagText}>NEW</Text>
               </View>
-              <Ionicons name="play-circle" size={18} color={primaryColor} style={styles.playIcon} />
+              <Ionicons name="play-circle" size={18} color={colors.white} style={styles.playIcon} />
             </View>
           </View>
         </LinearGradient>

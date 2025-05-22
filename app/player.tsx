@@ -154,7 +154,8 @@ const styles = StyleSheet.create({
 	},
 	artworkImage: {
 		width: '100%',
-		height: '100%',
+		height: undefined, // Allow height to scale automatically
+		aspectRatio: 1,
 		resizeMode: 'cover',
 		borderRadius: 12,
 	},

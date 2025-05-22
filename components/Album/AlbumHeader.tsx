@@ -135,8 +135,9 @@ const styles = StyleSheet.create({
   },
   artwork: {
     width: "100%",
-    height: "100%",
     borderRadius: 8,
+    height: undefined, // Allow height to scale automatically
+    aspectRatio: 1
   },
   detailsContainer: {
     paddingHorizontal: 24,
