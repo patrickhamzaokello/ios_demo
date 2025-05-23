@@ -1,17 +1,25 @@
-import { StyleSheet, Text, View } from "react-native";
-import React, { useCallback, useEffect, useState } from "react";
-import { Slot, Stack } from "expo-router";
-import { AuthProvider } from "@/contexts/authContext";
-import { PlayerProvider } from "@/providers/PlayerProvider";
-import * as SplashScreen from "expo-splash-screen";
 import { playbackService } from "@/constants/playbackService";
 import { colors } from "@/constants/tokens";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { useLogTrackPlayerState } from "@/hooks/useLogTrackPlayerState";
 import { useSetupTrackPlayer } from "@/hooks/useSetupTrackPlayer";
+import * as Notifications from "expo-notifications";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import React, { useCallback, useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import TrackPlayer from "react-native-track-player";
+import * as Device from 'expo-device';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -60,13 +68,15 @@ const App = () => {
   }
 
   return (
-    <SafeAreaProvider>
-      <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
-        <RootNavigation />
+    <NotificationProvider>
+      <SafeAreaProvider>
+        <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
+          <RootNavigation />
 
-        <StatusBar style="auto" />
-      </GestureHandlerRootView>
-    </SafeAreaProvider>
+          <StatusBar style="auto" />
+        </GestureHandlerRootView>
+      </SafeAreaProvider>
+    </NotificationProvider>
   );
 };
 
