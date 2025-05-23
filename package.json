@@ -30,6 +30,7 @@
     "@react-navigation/native": "^7.0.14",
     "axios": "^1.7.9",
     "colorthief": "^2.6.0",
+    "crypto": "^1.0.1",
     "date-fns": "^4.1.0",
     "expo": "~52.0.35",
     "expo-av": "~15.0.2",

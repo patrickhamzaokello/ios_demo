@@ -2,8 +2,8 @@ import library from '@/assets/data/library.json'
 import { unknownTrackImageUri } from '@/constants/images'
 import { Artist, Playlist, TrackWithPlaylist } from '@/helpers/types'
 import { Track } from 'react-native-track-player'
-// import { create } from 'zustand'
-import { createWithEqualityFn as create } from 'zustand/traditional'
+import { create } from 'zustand'
+// import { createWithEqualityFn as create } from 'zustand/traditional'
 import { useShallow } from 'zustand/shallow'
 
 
