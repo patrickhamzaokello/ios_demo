@@ -1,46 +1,77 @@
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  Pressable,
-  Dimensions,
-  TouchableOpacity,
-} from "react-native";
-import Animated, {
-  FadeInRight,
-  useAnimatedScrollHandler,
-  useSharedValue,
-  useAnimatedStyle,
-  interpolate,
-} from "react-native-reanimated";
-import type { Section } from "../../types/home";
-import { Link, useRouter } from "expo-router";
-import FastImage from "@d11/react-native-fast-image";
 import { unknownTrackImageUri } from "@/constants/images";
+import { colors, fontSize } from "@/constants/theme";
+import FastImage from "@d11/react-native-fast-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import {
+  Dimensions,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import type { Section } from "../../types/home";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH * 0.8;
-const CARD_HEIGHT = CARD_WIDTH * 0.5;
-const SPACING = 12;
+const { width: screenWidth } = Dimensions.get("window");
 
 interface Props {
   data: Section;
 }
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+// image size  asp ratio 8:5 800px by 500px
 
 export function SliderSection({ data }: Props) {
   if (!data?.featured_sliderBanners) return null;
 
-  const scrollX = useSharedValue(0);
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      scrollX.value = event.contentOffset.x;
-    },
-  });
   const router = useRouter();
+
+  const SliderBannerCard = ({
+    item,
+  }: {
+    item: {
+      id?: string;
+      playlistID?: string;
+      imagepath?: string;
+      title?: string;
+      subtitle?: string;
+      description?: string;
+    };
+  }) => (
+    <TouchableOpacity
+      style={styles.bannerCard}
+      activeOpacity={0.8}
+      onPress={() =>
+        router.push({
+          pathname: "/(tabs)/(home)/home_playlist_details",
+          params: { playlist_id: item.playlistID || item.id },
+        })
+      }
+    >
+      <FastImage
+        source={{
+          uri: item.imagepath ?? unknownTrackImageUri,
+          priority: FastImage.priority.normal,
+        }}
+        style={styles.bannerArtwork}
+      />
+      <LinearGradient
+        colors={["transparent", "rgba(0,0,0,0.8)"]}
+        style={styles.bannerGradient}
+      />
+      <View style={styles.bannerContent}>
+        <Text style={styles.bannerTitle}>
+          {item.title || "Featured Playlist"}
+        </Text>
+        {item.subtitle && (
+          <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
+        )}
+        {item.description && (
+          <Text style={styles.bannerDescription}>{item.description}</Text>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
@@ -54,67 +85,18 @@ export function SliderSection({ data }: Props) {
           <Text style={styles.heading}>{data.heading}</Text>
         </View>
       </View>
-      <Animated.ScrollView
+      <FlatList
+        data={data.featured_sliderBanners}
+        renderItem={({ item }) => (
+          <SliderBannerCard item={{ ...item, id: item.id?.toString() }} />
+        )}
+        keyExtractor={(item) =>
+          Math.random().toString()
+        }
         horizontal
         showsHorizontalScrollIndicator={false}
-        snapToInterval={CARD_WIDTH + SPACING}
-        decelerationRate="fast"
-        contentContainerStyle={styles.scrollContent}
-        onScroll={scrollHandler}
-        scrollEventThrottle={16}
-      >
-        {data.featured_sliderBanners.map((banner, index) => {
-          const inputRange = [
-            (index - 1) * (CARD_WIDTH + SPACING),
-            index * (CARD_WIDTH + SPACING),
-            (index + 1) * (CARD_WIDTH + SPACING),
-          ];
-
-          const animatedStyle = useAnimatedStyle(() => {
-            const scale = interpolate(
-              scrollX.value,
-              inputRange,
-              [0.9, 1, 0.9],
-              "clamp"
-            );
-
-            const opacity = interpolate(
-              scrollX.value,
-              inputRange,
-              [0.6, 1, 0.6],
-              "clamp"
-            );
-
-            return {
-              transform: [{ scale }],
-              opacity,
-            };
-          });
-
-          return (
-            <AnimatedPressable
-              key={banner.id}
-              style={[styles.card, animatedStyle]}
-              entering={FadeInRight.delay(index * 100)}
-              onPress={() =>
-                router.push({
-                  pathname: "/(tabs)/(home)/home_playlist_details",
-                  params: { playlist_id: banner.playlistID },
-                })
-              }
-            >
-              <FastImage
-                source={{
-                  uri: banner.imagepath ?? unknownTrackImageUri,
-                  priority: FastImage.priority.normal,
-                }}
-                style={styles.image}
-                resizeMode="cover"
-              />
-            </AnimatedPressable>
-          );
-        })}
-      </Animated.ScrollView>
+        contentContainerStyle={styles.horizontalList}
+      />
     </View>
   );
 }
@@ -146,19 +128,53 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     letterSpacing: 0.2,
   },
-  scrollContent: {
-    paddingHorizontal: 16,
-    gap: SPACING,
+  horizontalList: {
+    paddingLeft: 20,
+    paddingRight: 10,
   },
-  card: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
+  bannerCard: {
+    width: screenWidth * 0.8,
+    height: 200,
+    marginRight: 15,
     borderRadius: 12,
     overflow: "hidden",
-    backgroundColor: "#1A1A1A",
+    backgroundColor: colors.neutral800,
+    position: "relative",
   },
-  image: {
+  bannerArtwork: {
     width: "100%",
     height: "100%",
+    position: "absolute",
+  },
+  bannerGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "60%",
+  },
+  bannerContent: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 15,
+  },
+  bannerTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: "700",
+    color: colors.text,
+    marginBottom: 4,
+  },
+  bannerSubtitle: {
+    fontSize: fontSize.md,
+    fontWeight: "500",
+    color: colors.textLight,
+    marginBottom: 2,
+  },
+  bannerDescription: {
+    fontSize: fontSize.sm,
+    color: colors.textLight,
+    opacity: 0.8,
   },
 });

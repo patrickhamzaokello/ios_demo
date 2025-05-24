@@ -1,8 +1,7 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import Animated, {
-  FadeIn,
-  ZoomIn,
+  FadeInDown,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
@@ -100,24 +99,24 @@ function MusicCard({
         { scale: scale.value },
         { rotateZ: `${rotation.value}deg` }
       ],
-      shadowOpacity: interpolate(scale.value, [0.95, 1], [0.2, 0.4]),
+      shadowOpacity: interpolate(scale.value, [0.98, 1], [0.2, 0.35]),
     };
   });
 
   const handlePressIn = () => {
-    scale.value = withTiming(0.95, { 
-      duration: 150,
+    scale.value = withTiming(0.98, { 
+      duration: 200,
       easing: Easing.bezier(0.25, 0.1, 0.25, 1)
     });
-    rotation.value = withTiming(-1, { duration: 150 });
+    rotation.value = withTiming(-0.5, { duration: 200 });
   };
 
   const handlePressOut = () => {
     scale.value = withTiming(1, { 
-      duration: 250,
+      duration: 300,
       easing: Easing.bezier(0.25, 0.1, 0.25, 1)
     });
-    rotation.value = withTiming(0, { duration: 250 });
+    rotation.value = withTiming(0, { duration: 300 });
   };
 
   return (
@@ -126,7 +125,7 @@ function MusicCard({
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      entering={ZoomIn.delay(index * 100).springify()}
+      entering={FadeInDown.delay(index * 50).duration(400).easing(Easing.out(Easing.quad))}
     >
       <LinearGradient
         colors={[backgroundColor, 'rgba(0,0,0,0.8)']}
@@ -136,9 +135,14 @@ function MusicCard({
       >
         <View style={styles.artworkContainer}>
           <MotiView
-            from={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'timing', duration: 500, delay: index * 100 }}
+            from={{ opacity: 0, translateY: 10 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ 
+              type: 'timing', 
+              duration: 600, 
+              delay: index * 50,
+              easing: Easing.out(Easing.quad)
+            }}
             style={styles.imageWrapper}
           >
             <AnimatedFastImage
