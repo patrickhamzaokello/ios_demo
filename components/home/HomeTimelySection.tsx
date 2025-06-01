@@ -11,14 +11,21 @@ import {
   } from "react-native-reanimated";
   import { LinearGradient } from "expo-linear-gradient";
   import type { Section } from "../../types/home";
-  import { colors } from "@/constants/theme";
   import React, { useMemo, useState } from "react";
   import FastImage from "@d11/react-native-fast-image";
   import { unknownTrackImageUri } from "@/constants/images";
   import { Track, useActiveTrack, useIsPlaying } from "react-native-track-player";
   import { Ionicons } from "@expo/vector-icons";
   import LoaderKit from "react-native-loader-kit";
-  import { colors as new_colors } from "@/constants/tokens";
+  import { scale, verticalScale } from "@/utils/styling";
+  import { 
+    colors, 
+    spacingX, 
+    spacingY, 
+    radius, 
+    fontSize, 
+    shadow 
+  } from "@/constants/theme";
   
   interface Props {
     data: Section;
@@ -29,8 +36,6 @@ import {
   
   const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
   const { width: SCREEN_WIDTH } = Dimensions.get("window");
-  const LIST_PADDING = 16;
-  const LIST_ITEM_HEIGHT = 72; // Adjusted for a comfortable list item height
   
   export function HomeWeeklyChartSection({
     data,
@@ -49,59 +54,68 @@ import {
         artwork: track.artworkPath,
       }));
   
-      // Only display the first 6 tracks in the list to encourage "See All" usage
-      // You can adjust this number as needed
-      const displayTracks = tracks_fixed.slice(0, 6);
+      // Display top 5 tracks for a cleaner, more focused view
+      const displayTracks = tracks_fixed.slice(0, 5);
   
       return displayTracks.map((track, index) => (
-        <React.Fragment key={track.id}>
-          <TrackListItem
-            item={track}
-            index={index}
-            onPress={() => onTrackPress?.(track, tracks_fixed, queueID)}
-            isLast={index === displayTracks.length - 1}
-          />
-          {index < displayTracks.length - 1 && <View style={styles.separator} />}
-        </React.Fragment>
+        <TrackListItem
+          key={track.id}
+          item={track}
+          index={index}
+          onPress={() => onTrackPress?.(track, tracks_fixed, queueID)}
+          isLast={index === displayTracks.length - 1}
+        />
       ));
     }, [data.Tracks, onTrackPress]);
   
     return (
       <View style={styles.container}>
-        <View style={styles.headerRow}>
-          <View style={styles.headingContainer}>
-            <LinearGradient
-              colors={["#7C3AED", "#4F46E5"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.headingAccent}
-            />
-            <Text style={styles.heading}>{data.heading}</Text>
-            <Text style={styles.trackCount}>{data.Tracks.length} tracks</Text>
+        {/* Header Section */}
+        <View style={styles.headerSection}>
+          <View style={styles.headerTop}>
+            <View style={styles.headingContainer}>
+              <View style={styles.trendingIcon}>
+                <Text style={styles.trendingEmoji}>🔥</Text>
+              </View>
+              <View>
+                <Text style={styles.heading}>{data.heading}</Text>
+                <Text style={styles.weekDate}>{data.weekdate}</Text>
+              </View>
+            </View>
+  
+            <Pressable
+              style={({ pressed }) => [
+                styles.seeAllButton,
+                pressed && styles.seeAllButtonPressed,
+              ]}
+              onPress={onSeeAllPress}
+            >
+              <Text style={styles.seeAllText}>View All</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+            </Pressable>
           </View>
   
-          <Pressable
-            style={({ pressed }) => [
-              styles.seeAllButton,
-              pressed && styles.seeAllButtonPressed,
-            ]}
-            onPress={onSeeAllPress}
-          >
-            <Text style={styles.seeAll}>See All</Text>
-            <View style={styles.arrowContainer}>
-              <Text style={styles.arrow}>›</Text>
+          {/* Featured Artist Card */}
+          {data.weekartist && (
+            <View style={styles.featuredCard}>
+              <FastImage
+                source={{ uri: data.weekimage }}
+                style={styles.artistImage}
+              />
+              <View style={styles.featuredContent}>
+                <Text style={styles.featuredLabel}>Week's Top Artist</Text>
+                <Text style={styles.featuredArtist}>{data.weekartist}</Text>
+                <Text style={styles.featuredDesc} numberOfLines={2}>
+                  {data.subheading}
+                </Text>
+              </View>
             </View>
-          </Pressable>
+          )}
         </View>
   
-        <View style={styles.cardContainer} testID="trending-list">
-          <LinearGradient
-            colors={["rgba(255,255,255,0.1)", "rgba(255,255,255,0.05)"]}
-            style={styles.cardGradient}
-          />
-          <View style={styles.listContainer}>
-            {listItems}
-          </View>
+        {/* Chart List */}
+        <View style={styles.chartContainer}>
+          {listItems}
         </View>
       </View>
     );
@@ -124,93 +138,96 @@ import {
     const { playing } = useIsPlaying();
     const isActiveTrack = useActiveTrack()?.url === item.url;
   
+    const getRankStyle = (position: number) => {
+      if (position === 0) return styles.goldRank;
+      if (position === 1) return styles.silverRank;
+      if (position === 2) return styles.bronzeRank;
+      return styles.defaultRank;
+    };
+  
+    const getTrendIcon = () => {
+      if (item.trend) {
+        return <Ionicons name="trending-up" size={12} color={colors.success} />;
+      }
+      return null;
+    };
+  
     return (
       <AnimatedPressable
         style={[
           styles.trackItem,
           pressed && styles.trackItemPressed,
-          isLast && styles.lastItem,
+          isLast && styles.lastTrackItem,
         ]}
-        entering={FadeInUp.delay(index * 80).springify()}
+        entering={FadeInUp.delay(index * 100).springify()}
         onPressIn={() => setPressed(true)}
         onPressOut={() => setPressed(false)}
         onPress={onPress}
       >
-        {/* Rank badge */}
-        <View style={styles.rankContainer}>
-          <LinearGradient
-            colors={
-              index === 0
-                ? ["#FFD700", "#FFA500"]
-                : index === 1
-                ? ["#C0C0C0", "#A9A9A9"]
-                : index === 2
-                ? ["#CD7F32", "#8B4513"]
-                : ["rgba(255,255,255,0.2)", "rgba(255,255,255,0.1)"]
-            }
-            style={styles.rankBadge}
-          >
-            <Text style={styles.index}>{index + 1}</Text>
-          </LinearGradient>
+        {/* Rank */}
+        <View style={[styles.rankContainer, getRankStyle(index)]}>
+          <Text style={styles.rankText}>{index + 1}</Text>
         </View>
   
-        {/* Album artwork */}
-        <View style={styles.imageContainer}>
+        {/* Track Info */}
+        <View style={styles.trackInfo}>
           <FastImage
             source={{
               uri: item.artwork ?? unknownTrackImageUri,
               priority: FastImage.priority.normal,
             }}
-            style={{
-              ...styles.trackArtworkImage,
-              opacity: isActiveTrack ? 0.6 : 1,
-            }}
+            style={[
+              styles.trackImage,
+              isActiveTrack && styles.activeTrackImage
+            ]}
           />
   
-          {isActiveTrack &&
-            (playing ? (
-              <LoaderKit
-                style={styles.trackPlayingIconIndicator}
-                name="LineScaleParty"
-                color={new_colors.icon}
-              />
-            ) : (
-              <Ionicons
-                style={styles.trackPausedIndicator}
-                name="play"
-                size={24}
-                color={new_colors.icon}
-              />
-            ))}
-        </View>
-  
-        {/* Track details */}
-        <View style={styles.details}>
-          <Text
-            style={{
-              ...styles.title,
-              color: isActiveTrack ? colors.primary : colors.text,
-            }}
-            numberOfLines={1}
-          >
-            {item.title}
-          </Text>
-          <Text style={styles.artist} numberOfLines={1}>
-            {item.artist}
-          </Text>
-        </View>
-  
-        {/* Play indicator */}
-        <View style={styles.playIndicator}>
-          {isActiveTrack ? (
-            <Ionicons 
-              name={playing ? "pause-circle" : "play-circle"} 
-              size={24} 
-              color={colors.primary} 
-            />
-          ) : (
-            <Ionicons name="play-circle-outline" size={24} color="rgba(255,255,255,0.7)" />
+          {isActiveTrack && (
+            <View style={styles.playingOverlay}>
+              {playing ? (
+                <LoaderKit
+                  style={styles.playingIndicator}
+                  name="LineScaleParty"
+                  color={colors.primary}
+                  size={16}
+                />
+              ) : (
+                <Ionicons
+                  name="play"
+                  size={16}
+                  color={colors.primary}
+                />
+              )}
+            </View>
           )}
+  
+          <View style={styles.trackDetails}>
+            <View style={styles.titleRow}>
+              <Text
+                style={[
+                  styles.trackTitle,
+                  isActiveTrack && styles.activeTrackTitle
+                ]}
+                numberOfLines={1}
+              >
+                {item.title}
+              </Text>
+              {getTrendIcon()}
+            </View>
+            <Text style={styles.trackArtist} numberOfLines={1}>
+              {item.artist}
+            </Text>
+          </View>
+        </View>
+  
+        {/* Play Count & Action */}
+        <View style={styles.rightSection}>
+          <Text style={styles.playCount}>{item.totalplays || 0}</Text>
+          <Ionicons 
+            name={isActiveTrack && playing ? "pause-circle" : "play-circle-outline"} 
+            size={20} 
+            color={isActiveTrack ? colors.primary : colors.textLight} 
+          />
         </View>
       </AnimatedPressable>
     );
@@ -218,182 +235,214 @@ import {
   
   const styles = StyleSheet.create({
     container: {
-      marginTop: 32,
-      paddingHorizontal: LIST_PADDING,
-      marginBottom: 16,
+      marginTop: spacingY._25,
+      paddingHorizontal: spacingX._15,
+      marginBottom: spacingY._20,
     },
-    headerRow: {
+    headerSection: {
+      marginBottom: spacingY._20,
+    },
+    headerTop: {
       flexDirection: "row",
       justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 16,
+      alignItems: "flex-start",
+      marginBottom: spacingY._15,
     },
     headingContainer: {
       flexDirection: "row",
       alignItems: "center",
+      flex: 1,
     },
-    headingAccent: {
-      width: 4,
-      height: 20,
-      borderRadius: 2,
-      marginRight: 8,
+    trendingIcon: {
+      width: scale(32),
+      height: verticalScale(32),
+      backgroundColor: colors.background,
+      borderRadius: radius._10,
+      justifyContent: "center",
+      alignItems: "center",
+      marginRight: spacingX._10,
+      borderWidth: 1,
+      borderColor: colors.divider,
+    },
+    trendingEmoji: {
+      fontSize: fontSize.md,
     },
     heading: {
-      fontSize: 22,
-      fontWeight: "700",
-      color: "#FFFFFF",
-      letterSpacing: 0.2,
+      fontSize: fontSize.xl,
+      fontWeight: '700',
+      color: colors.text,
+      letterSpacing: 0.3,
     },
-    trackCount: {
-      fontSize: 12,
-      color: "rgba(255, 255, 255, 0.6)",
-      fontWeight: "500",
-      marginLeft: 10,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      backgroundColor: "rgba(255, 255, 255, 0.1)",
-      borderRadius: 10,
+    weekDate: {
+      fontSize: fontSize.xs,
+      color: colors.textLighter,
+      fontWeight: '500',
+      marginTop: 2,
     },
     seeAllButton: {
       flexDirection: "row",
       alignItems: "center",
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      borderRadius: 16,
-      backgroundColor: "rgba(255,255,255,0.08)",
+      paddingVertical: spacingY._7,
+      paddingHorizontal: spacingX._12,
+      backgroundColor: colors.background,
+      borderRadius: radius._10,
+      borderWidth: 1,
+      borderColor: colors.divider,
+      gap: spacingX._5,
     },
     seeAllButtonPressed: {
-      backgroundColor: "rgba(255,255,255,0.12)",
+      backgroundColor: colors.divider,
     },
-    seeAll: {
-      fontSize: 14,
-      color: "#A0AEC0",
-      fontWeight: "600",
+    seeAllText: {
+      fontSize: fontSize.sm,
+      color: colors.primary,
+      fontWeight: '500',
     },
-    arrowContainer: {
-      marginLeft: 4,
-    },
-    arrow: {
-      fontSize: 16,
-      color: "#A0AEC0",
-      fontWeight: "600",
-    },
-    cardContainer: {
-      width: SCREEN_WIDTH - LIST_PADDING * 2,
-      borderRadius: 16,
-      overflow: "hidden",
-      position: "relative",
-      ...Platform.select({
-        ios: {
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.2,
-          shadowRadius: 8,
-        },
-        android: {
-          elevation: 6,
-        },
-        web: {
-          boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-        },
-      }),
-    },
-    cardGradient: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-    },
-    listContainer: {
-      flexDirection: "column",
-    },
-    separator: {
-      height: 1,
-      backgroundColor: "rgba(255,255,255,0.1)",
-      marginHorizontal: 16,
-    },
-    trackItem: {
-      height: LIST_ITEM_HEIGHT,
+    featuredCard: {
       flexDirection: "row",
-      alignItems: "center",
-      padding: 12,
-      paddingHorizontal: 16,
-    },
-    lastItem: {
-      borderBottomLeftRadius: 16,
-      borderBottomRightRadius: 16,
-    },
-    trackItemPressed: {
-      backgroundColor: "rgba(255,255,255,0.05)",
-    },
-    rankContainer: {
-      marginRight: 12,
-      alignItems: "center",
-      justifyContent: "center",
-      width: 28,
-    },
-    rankBadge: {
-      width: 24,
-      height: 24,
-      borderRadius: 12,
-      alignItems: "center",
-      justifyContent: "center",
+      backgroundColor: colors.matteBlack,
+      borderRadius: radius._12,
+      padding: spacingX._12,
       borderWidth: 1,
-      borderColor: "rgba(255,255,255,0.3)",
+      borderColor: colors.divider,
+      ...shadow.sm,
     },
-    index: {
-      color: "#FFFFFF",
-      fontSize: 12,
-      fontWeight: "700",
-      textShadowColor: "rgba(0,0,0,0.5)",
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 2,
+    artistImage: {
+      width: scale(48),
+      height: verticalScale(48),
+      borderRadius: radius._10,
+      marginRight: spacingX._12,
     },
-    imageContainer: {
-      borderRadius: 8,
-      overflow: "hidden",
-      position: "relative",
-      marginRight: 12,
-    },
-    trackArtworkImage: {
-      width: 48,
-      height: 48,
-      borderRadius: 8,
-    },
-    trackPlayingIconIndicator: {
-      position: "absolute",
-      top: 16,
-      left: 16,
-      width: 16,
-      height: 16,
-    },
-    trackPausedIndicator: {
-      position: "absolute",
-      top: 12,
-      left: 12,
-    },
-    details: {
+    featuredContent: {
       flex: 1,
       justifyContent: "center",
     },
-    title: {
-      color: "#FFFFFF",
-      fontWeight: "700",
-      fontSize: 15,
-      marginBottom: 4,
-      letterSpacing: 0.2,
+    featuredLabel: {
+      fontSize: fontSize.xs,
+      color: colors.primary,
+      fontWeight: '500',
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      marginBottom: 2,
     },
-    artist: {
-      color: "rgba(255, 255, 255, 0.7)",
-      fontSize: 13,
-      fontWeight: "500",
+    featuredArtist: {
+      fontSize: fontSize.md,
+      color: colors.text,
+      fontWeight: '600',
+      marginBottom: 2,
     },
-    playIndicator: {
-      width: 32,
-      height: 32,
+    featuredDesc: {
+      fontSize: fontSize.xs,
+      color: colors.textLighter,
+      fontWeight: '400',
+      lineHeight: verticalScale(16),
+    },
+    chartContainer: {
+      backgroundColor: colors.background,
+      borderRadius: radius._12,
+      borderWidth: 1,
+      borderColor: colors.divider,
+      overflow: "hidden",
+      ...shadow.md,
+    },
+    trackItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: spacingX._12,
+      minHeight: verticalScale(60),
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
+    lastTrackItem: {
+      borderBottomWidth: 0,
+    },
+    trackItemPressed: {
+      backgroundColor: colors.divider,
+    },
+    rankContainer: {
+      width: scale(24),
+      height: verticalScale(24),
+      borderRadius: radius._12,
       justifyContent: "center",
       alignItems: "center",
-      marginLeft: 8,
+      marginRight: spacingX._12,
+    },
+    goldRank: {
+      backgroundColor: "#FFD700",
+    },
+    silverRank: {
+      backgroundColor: "#C0C0C0",
+    },
+    bronzeRank: {
+      backgroundColor: "#CD7F32",
+    },
+    defaultRank: {
+      backgroundColor: colors.neutral700,
+    },
+    rankText: {
+      fontSize: fontSize.xs,
+      fontWeight: '700',
+      color: colors.black,
+    },
+    trackInfo: {
+      flexDirection: "row",
+      alignItems: "center",
+      flex: 1,
+    },
+    trackImage: {
+      width: scale(40),
+      height: verticalScale(40),
+      borderRadius: radius._6,
+      marginRight: spacingX._10,
+    },
+    activeTrackImage: {
+      opacity: 0.7,
+    },
+    playingOverlay: {
+      position: "absolute",
+      left: scale(12),
+      top: verticalScale(12),
+      width: scale(16),
+      height: verticalScale(16),
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    playingIndicator: {
+      width: scale(16),
+      height: verticalScale(16),
+    },
+    trackDetails: {
+      flex: 1,
+    },
+    titleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacingX._5,
+    },
+    trackTitle: {
+      fontSize: fontSize.md,
+      fontWeight: '600',
+      color: colors.text,
+      flex: 1,
+    },
+    activeTrackTitle: {
+      color: colors.primary,
+    },
+    trackArtist: {
+      fontSize: fontSize.sm,
+      color: colors.textLighter,
+      fontWeight: '400',
+      marginTop: 2,
+    },
+    rightSection: {
+      alignItems: "center",
+      gap: spacingY._5,
+    },
+    playCount: {
+      fontSize: fontSize.xs,
+      color: colors.textLighter,
+      fontWeight: '500',
     },
   });
+  
+  export default HomeWeeklyChartSection;
