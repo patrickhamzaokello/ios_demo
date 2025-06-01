@@ -1,11 +1,11 @@
-import { View, Text, Image, StyleSheet, Pressable } from "react-native";
-import { Link, useRouter } from "expo-router";
-import Animated, { FadeInRight } from "react-native-reanimated";
-import type { Section, Release } from "../../types/home";
-import FastImage from "@d11/react-native-fast-image";
 import { unknownTrackImageUri } from "@/constants/images";
 import { colors, fontSize } from "@/constants/theme";
+import FastImage from "@d11/react-native-fast-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInRight } from "react-native-reanimated";
+import type { Section } from "../../types/home";
 
 interface Props {
   data: Section;
@@ -40,7 +40,7 @@ export function PlaylistSection({ data }: Props) {
             style={styles.releaseItem}
             onPress={() =>
               router.push({
-                pathname: "/(tabs)/(home)/home_playlist_details",
+                pathname: "/(tabs)/(home)/playlistDetailsPage",
                 params: { playlist_id: item.id },
               })
             }
@@ -57,7 +57,9 @@ export function PlaylistSection({ data }: Props) {
             <Text style={styles.title} numberOfLines={1}>
               {item.name}
             </Text>
-            <Text style={styles.artist} numberOfLines={1}>{item.owner}</Text>
+            <Text style={styles.artist} numberOfLines={1}>
+              {item.owner}
+            </Text>
           </AnimatedPressable>
         ))}
       </Animated.ScrollView>

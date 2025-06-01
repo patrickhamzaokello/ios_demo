@@ -26,9 +26,9 @@ export default function TabsLayout() {
         }}
       >
         <Tabs.Screen name="(home)" />
-        <Tabs.Screen name="search" />
-        <Tabs.Screen name="library" />
-        <Tabs.Screen name="profile" />
+        <Tabs.Screen name="(search)" />
+        <Tabs.Screen name="(library)" />
+        <Tabs.Screen name="(profile)" />
       </Tabs>
 
       <FloatingPlayer

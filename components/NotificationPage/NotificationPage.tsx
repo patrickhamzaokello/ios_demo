@@ -1,7 +1,14 @@
 import { unknownTrackImageUri } from "@/constants/images";
-import { colors, spacingX, spacingY, radius, fontSize, fontWeight, borderRadius, shadow } from "@/constants/theme";
-import { scale, verticalScale } from "@/utils/styling";
+import {
+  borderRadius,
+  colors,
+  fontSize,
+  shadow,
+  spacingX,
+  spacingY,
+} from "@/constants/theme";
 import useNotificationList from "@/hooks/useUserNotificationList";
+import { scale, verticalScale } from "@/utils/styling";
 import FastImage from "@d11/react-native-fast-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -13,13 +20,12 @@ import {
   Dimensions,
   FlatList,
   RefreshControl,
+  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  SafeAreaView,
-  Platform,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -31,31 +37,31 @@ const getNotificationConfig = (type) => {
       color: colors.primary,
       backgroundColor: `${colors.primary}15`,
       icon: "music-note",
-      label: "Song"
+      label: "Song",
     },
     album: {
       color: colors.info,
       backgroundColor: `${colors.info}15`,
       icon: "album",
-      label: "Album"
+      label: "Album",
     },
     artist: {
       color: colors.warning,
       backgroundColor: `${colors.warning}15`,
       icon: "account-music",
-      label: "Artist"
+      label: "Artist",
     },
     playlist: {
       color: colors.success,
       backgroundColor: `${colors.success}15`,
       icon: "playlist-music",
-      label: "Playlist"
+      label: "Playlist",
     },
     default: {
       color: colors.primary,
       backgroundColor: `${colors.primary}15`,
       icon: "bell",
-      label: "Update"
+      label: "Update",
     },
   };
 
@@ -65,11 +71,11 @@ const getNotificationConfig = (type) => {
 // Enhanced time formatting
 const formatRelativeTime = (dateString) => {
   if (!dateString) return "Unknown";
-  
+
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return "Invalid date";
-    
+
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
@@ -88,8 +94,10 @@ const formatRelativeTime = (dateString) => {
     const day = date.getDate();
     const year = date.getFullYear();
     const currentYear = new Date().getFullYear();
-    
-    return year === currentYear ? `${month} ${day}` : `${month} ${day}, ${year}`;
+
+    return year === currentYear
+      ? `${month} ${day}`
+      : `${month} ${day}, ${year}`;
   } catch (error) {
     return "Unknown";
   }
@@ -125,14 +133,24 @@ const NotificationSkeleton = () => {
 
   return (
     <View style={styles.skeletonContainer}>
-      <Animated.View style={[styles.skeletonImage, { opacity: shimmerOpacity }]} />
+      <Animated.View
+        style={[styles.skeletonImage, { opacity: shimmerOpacity }]}
+      />
       <View style={styles.skeletonContent}>
         <View style={styles.skeletonHeader}>
-          <Animated.View style={[styles.skeletonTitle, { opacity: shimmerOpacity }]} />
-          <Animated.View style={[styles.skeletonTime, { opacity: shimmerOpacity }]} />
+          <Animated.View
+            style={[styles.skeletonTitle, { opacity: shimmerOpacity }]}
+          />
+          <Animated.View
+            style={[styles.skeletonTime, { opacity: shimmerOpacity }]}
+          />
         </View>
-        <Animated.View style={[styles.skeletonDescription, { opacity: shimmerOpacity }]} />
-        <Animated.View style={[styles.skeletonDescriptionShort, { opacity: shimmerOpacity }]} />
+        <Animated.View
+          style={[styles.skeletonDescription, { opacity: shimmerOpacity }]}
+        />
+        <Animated.View
+          style={[styles.skeletonDescriptionShort, { opacity: shimmerOpacity }]}
+        />
       </View>
     </View>
   );
@@ -168,12 +186,11 @@ const NotificationItem = ({ item, onPress, unread = true }) => {
   };
 
   return (
-    <Animated.View style={[styles.itemContainer, { transform: [{ scale: scaleAnim }] }]}>
+    <Animated.View
+      style={[styles.itemContainer, { transform: [{ scale: scaleAnim }] }]}
+    >
       <TouchableOpacity
-        style={[
-          styles.notificationItem,
-          unread && styles.unreadNotification,
-        ]}
+        style={[styles.notificationItem, unread && styles.unreadNotification]}
         onPress={handlePress}
         activeOpacity={0.8}
       >
@@ -183,11 +200,13 @@ const NotificationItem = ({ item, onPress, unread = true }) => {
             style={styles.notificationImage}
             resizeMode={FastImage.resizeMode.cover}
           />
-          <View style={[styles.typeIndicator, { backgroundColor: config.color }]}>
-            <MaterialCommunityIcons 
-              name={config.icon} 
-              size={scale(12)} 
-              color={colors.white} 
+          <View
+            style={[styles.typeIndicator, { backgroundColor: config.color }]}
+          >
+            <MaterialCommunityIcons
+              name={config.icon}
+              size={scale(12)}
+              color={colors.white}
             />
           </View>
         </View>
@@ -196,9 +215,14 @@ const NotificationItem = ({ item, onPress, unread = true }) => {
           <View style={styles.contentHeader}>
             <View style={styles.titleRow}>
               <Text style={styles.notificationTitle} numberOfLines={1}>
-                {item.title || 'Untitled'}
+                {item.title || "Untitled"}
               </Text>
-              <View style={[styles.typeBadge, { backgroundColor: config.backgroundColor }]}>
+              <View
+                style={[
+                  styles.typeBadge,
+                  { backgroundColor: config.backgroundColor },
+                ]}
+              >
                 <Text style={[styles.typeBadgeText, { color: config.color }]}>
                   {config.label}
                 </Text>
@@ -210,16 +234,16 @@ const NotificationItem = ({ item, onPress, unread = true }) => {
           </View>
 
           <Text style={styles.notificationDescription} numberOfLines={2}>
-            {item.description || 'No description available'}
+            {item.description || "No description available"}
           </Text>
 
           {unread && <View style={styles.unreadIndicator} />}
         </View>
 
-        <MaterialCommunityIcons 
-          name="chevron-right" 
-          size={scale(16)} 
-          color={colors.neutral400} 
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={scale(16)}
+          color={colors.neutral400}
           style={styles.chevron}
         />
       </TouchableOpacity>
@@ -230,7 +254,7 @@ const NotificationItem = ({ item, onPress, unread = true }) => {
 // Enhanced Section Header
 const SectionHeader = ({ title }) => (
   <View style={styles.sectionHeader}>
-    <Text style={styles.sectionHeaderText}>{title || ''}</Text>
+    <Text style={styles.sectionHeaderText}>{title || ""}</Text>
     <View style={styles.sectionDivider} />
   </View>
 );
@@ -267,10 +291,10 @@ const ErrorState = ({ onRetry }) => (
       Unable to load notifications. Please check your connection.
     </Text>
     <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-      <MaterialCommunityIcons 
-        name="refresh" 
-        size={scale(16)} 
-        color={colors.white} 
+      <MaterialCommunityIcons
+        name="refresh"
+        size={scale(16)}
+        color={colors.white}
         style={styles.retryIcon}
       />
       <Text style={styles.retryButtonText}>Try Again</Text>
@@ -329,16 +353,28 @@ export default function NotificationPage() {
 
     switch (item.type) {
       case "song":
-        router.push(`/song/${item.id}`);
+        router.push({
+          pathname: "/(tabs)/(home)/albumDetailsPage",
+          params: { releaseid: item.id },
+        });
         break;
       case "album":
-        router.push(`/album/${item.id}`);
+        router.push({
+          pathname: "/(tabs)/(home)/albumDetailsPage",
+          params: { releaseid: item.id },
+        });
         break;
       case "artist":
-        router.push(`/artist/${item.artistID}`);
+        router.push({
+          pathname: "/(tabs)/(home)/artistDetailsPage",
+          params: { artist_id: item.id },
+        });
         break;
       case "playlist":
-        router.push(`/playlist/${item.id}`);
+        router.push({
+          pathname: "/(tabs)/(home)/playlistDetailsPage",
+          params: { playlist_id: item.id },
+        });
         break;
       default:
         break;
@@ -373,7 +409,7 @@ export default function NotificationPage() {
 
   const renderItem = ({ item }) => {
     if (item.isSection) {
-      return <SectionHeader title={item.title || ''} />;
+      return <SectionHeader title={item.title || ""} />;
     }
 
     return (
@@ -409,7 +445,7 @@ export default function NotificationPage() {
             </View>
           )}
         </View>
-        
+
         {unreadCount > 0 && (
           <TouchableOpacity
             style={styles.markAllButton}
@@ -418,13 +454,15 @@ export default function NotificationPage() {
                 .filter((item) => !item.isSection)
                 .map((item) => item.id);
               setReadNotifications(allIds);
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success
+              );
             }}
           >
-            <MaterialCommunityIcons 
-              name="check-all" 
-              size={scale(14)} 
-              color={colors.primary} 
+            <MaterialCommunityIcons
+              name="check-all"
+              size={scale(14)}
+              color={colors.primary}
               style={styles.markAllIcon}
             />
             <Text style={styles.markAllButtonText}>Mark all read</Text>
@@ -494,7 +532,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: fontSize.headline,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.text,
   },
   unreadBadge: {
@@ -508,7 +546,7 @@ const styles = StyleSheet.create({
   },
   unreadBadgeText: {
     fontSize: fontSize.xs,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.matteBlack,
   },
   markAllButton: {
@@ -526,7 +564,7 @@ const styles = StyleSheet.create({
   },
   markAllButtonText: {
     fontSize: fontSize.sm,
-    fontWeight: '500',
+    fontWeight: "500",
     color: colors.primary,
   },
   loadingContainer: {
@@ -548,7 +586,7 @@ const styles = StyleSheet.create({
   },
   sectionHeaderText: {
     fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textLighter,
     textTransform: "uppercase",
     letterSpacing: 1,
@@ -608,7 +646,7 @@ const styles = StyleSheet.create({
   },
   notificationTitle: {
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.text,
     flex: 1,
     marginRight: spacingX._10,
@@ -620,12 +658,12 @@ const styles = StyleSheet.create({
   },
   typeBadgeText: {
     fontSize: fontSize.xs,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   timeStamp: {
     fontSize: fontSize.xs,
     color: colors.neutral400,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   notificationDescription: {
     fontSize: fontSize.sm,
@@ -654,7 +692,7 @@ const styles = StyleSheet.create({
     marginLeft: spacingX._10,
     fontSize: fontSize.sm,
     color: colors.neutral400,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   emptyContainer: {
     flex: 1,
@@ -674,7 +712,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     color: colors.text,
     fontSize: fontSize.xl,
-    fontWeight: '600',
+    fontWeight: "600",
     textAlign: "center",
     marginBottom: spacingY._10,
   },
@@ -696,7 +734,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     color: colors.text,
     fontSize: fontSize.xl,
-    fontWeight: '600',
+    fontWeight: "600",
     textAlign: "center",
     marginBottom: spacingY._10,
   },
@@ -721,7 +759,7 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: colors.matteBlack,
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: fontSize.md,
   },
   // Skeleton Styles

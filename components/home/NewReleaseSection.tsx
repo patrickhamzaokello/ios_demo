@@ -1,20 +1,20 @@
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { unknownTrackImageUri } from "@/constants/images";
+import { colors } from "@/constants/theme";
+import { usePlayerBackground } from "@/hooks/usePlayerBackground";
+import FastImage from "@d11/react-native-fast-image";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { MotiView } from "moti";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
+  Easing,
   FadeInDown,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-  Easing,
 } from "react-native-reanimated";
-import { unknownTrackImageUri } from "@/constants/images";
-import FastImage from "@d11/react-native-fast-image";
-import { LinearGradient } from "expo-linear-gradient";
-import { MotiView } from "moti";
-import { Ionicons } from "@expo/vector-icons";
-import { usePlayerBackground } from "@/hooks/usePlayerBackground";
-import { colors } from "@/constants/theme";
 
 interface Props {
   data: any;
@@ -30,15 +30,15 @@ export function NewReleaseSection({ data }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-                <View style={styles.headingContainer}>
-                  <LinearGradient
-                    colors={["#7C3AED", "#4F46E5"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.headingAccent}
-                  />
-                  <Text style={styles.heading}>{data.heading}</Text>
-                </View>
+        <View style={styles.headingContainer}>
+          <LinearGradient
+            colors={["#7C3AED", "#4F46E5"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.headingAccent}
+          />
+          <Text style={styles.heading}>{data.heading}</Text>
+        </View>
         <Pressable style={styles.seeAllButton}>
           <Text style={styles.seeAll}>See All</Text>
           <Ionicons name="chevron-forward" size={16} color={colors.primary} />
@@ -60,7 +60,7 @@ export function NewReleaseSection({ data }: Props) {
             index={index}
             onPress={() =>
               router.push({
-                pathname: "/(tabs)/(home)/new_release",
+                pathname: "/(tabs)/(home)/albumDetailsPage",
                 params: {
                   releaseid: item.id,
                 },
@@ -84,37 +84,34 @@ function MusicCard({
 }) {
   const scale = useSharedValue(1);
   const rotation = useSharedValue(0);
-  
+
   const { imageColors } = usePlayerBackground(
     item?.artworkPath ?? unknownTrackImageUri
   );
-  
+
   const primaryColor = imageColors?.primary || colors.primary;
   const backgroundColor = imageColors?.background || colors.background;
   const textColor = "#FFFFFF"; // Default text color since 'text' property is not available
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [
-        { scale: scale.value },
-        { rotateZ: `${rotation.value}deg` }
-      ],
+      transform: [{ scale: scale.value }, { rotateZ: `${rotation.value}deg` }],
       shadowOpacity: interpolate(scale.value, [0.98, 1], [0.2, 0.35]),
     };
   });
 
   const handlePressIn = () => {
-    scale.value = withTiming(0.98, { 
+    scale.value = withTiming(0.98, {
       duration: 200,
-      easing: Easing.bezier(0.25, 0.1, 0.25, 1)
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
     });
     rotation.value = withTiming(-0.5, { duration: 200 });
   };
 
   const handlePressOut = () => {
-    scale.value = withTiming(1, { 
+    scale.value = withTiming(1, {
       duration: 300,
-      easing: Easing.bezier(0.25, 0.1, 0.25, 1)
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
     });
     rotation.value = withTiming(0, { duration: 300 });
   };
@@ -125,10 +122,12 @@ function MusicCard({
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      entering={FadeInDown.delay(index * 50).duration(400).easing(Easing.out(Easing.quad))}
+      entering={FadeInDown.delay(index * 50)
+        .duration(400)
+        .easing(Easing.out(Easing.quad))}
     >
       <LinearGradient
-        colors={[backgroundColor, 'rgba(0,0,0,0.8)']}
+        colors={[backgroundColor, "rgba(0,0,0,0.8)"]}
         style={styles.cardContainer}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -137,11 +136,11 @@ function MusicCard({
           <MotiView
             from={{ opacity: 0, translateY: 10 }}
             animate={{ opacity: 1, translateY: 0 }}
-            transition={{ 
-              type: 'timing', 
-              duration: 600, 
+            transition={{
+              type: "timing",
+              duration: 600,
               delay: index * 50,
-              easing: Easing.out(Easing.quad)
+              easing: Easing.out(Easing.quad),
             }}
             style={styles.imageWrapper}
           >
@@ -154,31 +153,43 @@ function MusicCard({
               resizeMode="cover"
             />
           </MotiView>
-          
+
           {item.explicit && (
-            <View style={[styles.explicitBadge, { backgroundColor: primaryColor }]}>
+            <View
+              style={[styles.explicitBadge, { backgroundColor: primaryColor }]}
+            >
               <Text style={styles.explicitText}>E</Text>
             </View>
           )}
         </View>
 
         <LinearGradient
-          colors={['transparent', 'rgba(0, 0, 0, 0.23)', 'rgba(0, 0, 0, 0.17)']}
+          colors={["transparent", "rgba(0, 0, 0, 0.23)", "rgba(0, 0, 0, 0.17)"]}
           style={styles.textGradient}
         >
           <View style={styles.textContainer}>
-            <Text numberOfLines={1} style={[styles.title, { color: textColor }]}>
+            <Text
+              numberOfLines={1}
+              style={[styles.title, { color: textColor }]}
+            >
               {item.title}
             </Text>
             <Text numberOfLines={1} style={styles.artist}>
               {item.artist}
             </Text>
-            
+
             <View style={styles.tagContainer}>
-              <View style={[styles.releaseTag, { backgroundColor: colors.white }]}>
+              <View
+                style={[styles.releaseTag, { backgroundColor: colors.white }]}
+              >
                 <Text style={styles.tagText}>NEW</Text>
               </View>
-              <Ionicons name="play-circle" size={18} color={colors.white} style={styles.playIcon} />
+              <Ionicons
+                name="play-circle"
+                size={18}
+                color={colors.white}
+                style={styles.playIcon}
+              />
             </View>
           </View>
         </LinearGradient>
@@ -189,7 +200,7 @@ function MusicCard({
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 24
+    marginTop: 24,
   },
   headerContainer: {
     flexDirection: "row",

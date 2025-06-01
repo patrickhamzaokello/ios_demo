@@ -42,7 +42,7 @@ export function SliderSection({ data }: Props) {
       activeOpacity={0.8}
       onPress={() =>
         router.push({
-          pathname: "/(tabs)/(home)/home_playlist_details",
+          pathname: "/(tabs)/(home)/playlistDetailsPage",
           params: { playlist_id: item.playlistID || item.id },
         })
       }
@@ -90,9 +90,7 @@ export function SliderSection({ data }: Props) {
         renderItem={({ item }) => (
           <SliderBannerCard item={{ ...item, id: item.id?.toString() }} />
         )}
-        keyExtractor={(item) =>
-          Math.random().toString()
-        }
+        keyExtractor={(item) => Math.random().toString()}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.horizontalList}

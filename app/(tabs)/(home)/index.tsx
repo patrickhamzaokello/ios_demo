@@ -20,6 +20,9 @@ import { NewReleaseSection } from "../../../components/home/NewReleaseSection";
 import { SliderSection } from "../../../components/home/SliderSection";
 import { TrendingSection } from "../../../components/home/TrendingSection";
 import { useHomeData } from "../../../hooks/useHomeData";
+import HomeTextAdSection from "@/components/home/HomeTextAdSection";
+import HomeImageAdSection from "@/components/home/HomeImageAdSection";
+import { HomeWeeklyChartSection } from "@/components/home/HomeTimelySection";
 
 // Offline banner component
 const OfflineBanner = ({ lastUpdated }: { lastUpdated: string | null }) => {
@@ -117,7 +120,7 @@ export default function HomeScreen() {
               key={index}
               data={section}
               onNotificationsPress={() =>
-                router.push("/(tabs)/(home)/home_access_notifications")
+                router.push("/(tabs)/(home)/notifications")
               }
             />
           );
@@ -125,6 +128,19 @@ export default function HomeScreen() {
           return <NewReleaseSection key={index} data={section} />;
         case "slider":
           return <SliderSection key={index} data={section} />;
+        case "image_ad":
+          return <HomeImageAdSection key={index} data={section} />;
+        case "timely": 
+          return <HomeWeeklyChartSection    key={index}
+          data={section}
+          queueID={generateTracksListId(index.toString(), section.heading)}
+          onTrackPress={(
+            selectedTrack: Track,
+            tracks: Track[],
+            id: string
+          ) => handleTrackSelect(selectedTrack, tracks, id)} />;
+        case "text_ad":
+          return <HomeTextAdSection key={index} data={section} />;
         case "artist":
           return <FeaturedArtistsSection key={index} data={section} />;
         case "artist_more_like":

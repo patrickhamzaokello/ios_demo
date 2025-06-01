@@ -77,7 +77,7 @@ function ArtistCard({ item, index }: { item: any; index: number }) {
       onPressOut={handlePressOut}
       onPress={() =>
         router.push({
-          pathname: "/(tabs)/(home)/home_artist_details",
+          pathname: "/(tabs)/(home)/artistDetailsPage",
           params: {
             artist_id: item.id,
           },

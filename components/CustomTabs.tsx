@@ -25,7 +25,7 @@ export default function CustomTabs({ state, descriptors, navigation }: BottomTab
                 <Typo size={10} color={isFocused ? colors.primary : colors.neutral400}>Search</Typo>
             </>
         ),
-        library: (isFocused: boolean) => (
+        '(library)': (isFocused: boolean) => (
             <>
 
                 <Octicons name='apps' size={verticalScale(26)} color={isFocused ? colors.primary : colors.neutral400} />
@@ -33,7 +33,7 @@ export default function CustomTabs({ state, descriptors, navigation }: BottomTab
                 <Typo size={10} color={isFocused ? colors.primary : colors.neutral400}>Library</Typo>
             </>
         ),
-        profile: (isFocused: boolean) => (
+        '(profile)': (isFocused: boolean) => (
             <>
 
                 <Octicons name='person' size={verticalScale(26)} color={isFocused ? colors.primary : colors.neutral400} />

@@ -309,7 +309,7 @@ export default function SearchScreen() {
             style={styles.resultItem}
             onPress={() =>
               router.push({
-                pathname: "/(tabs)/(search)/home_artist_details",
+                pathname: "/(tabs)/(search)/artistDetailsPage",
                 params: {
                   artist_id: item.id,
                 },
@@ -342,7 +342,7 @@ export default function SearchScreen() {
             style={styles.resultItem}
             onPress={() =>
               router.push({
-                pathname: "/(tabs)/(search)/new_release",
+                pathname: "/(tabs)/(search)/albumDetailsPage",
                 params: {
                   releaseid: item.id,
                 },
@@ -374,7 +374,14 @@ export default function SearchScreen() {
         );
       case "playlist":
         return (
-          <TouchableOpacity style={styles.resultItem}>
+          <TouchableOpacity style={styles.resultItem}  onPress={() =>
+            router.push({
+              pathname: "/(tabs)/(search)/playlistDetailsPage",
+              params: {
+                playlist_id: item.id,
+              },
+            })
+          }>
             <FastImage
               source={{
                 uri: item.artworkPath ?? unknownTrackImageUri,

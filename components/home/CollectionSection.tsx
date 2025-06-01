@@ -41,7 +41,7 @@ export function CollectionSection({ data }: Props) {
             style={styles.releaseItem}
             onPress={() =>
               router.push({
-                pathname: "/(tabs)/(home)/new_release",
+                pathname: "/(tabs)/(home)/albumDetailsPage",
                 params: { releaseid: item.id },
               })
             }
