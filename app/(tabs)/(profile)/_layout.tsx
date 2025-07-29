@@ -1,5 +1,6 @@
 import React from 'react'
 import { Slot, Stack } from "expo-router"
+import { AuthProvider } from '@/contexts/authContext' // Adjust path as needed
 
 const StackLayout = () => {
   return <Stack screenOptions={{ headerShown: false }}></Stack>
@@ -7,7 +8,9 @@ const StackLayout = () => {
 
 function ProfileLayout() {
   return (
-    <StackLayout />
+    <AuthProvider>
+      <StackLayout />
+    </AuthProvider>
   )
 }
 

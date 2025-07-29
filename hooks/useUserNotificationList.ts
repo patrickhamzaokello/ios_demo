@@ -15,7 +15,7 @@ const useNotificationList = (query: string, page = 1) => {
 
     try {
       const response = await fetch(
-        `https://api.mwonya.com/v1/Requests/endpoints/all_notifications.php?page=${page}&userID=${encodeURIComponent(
+        `https://test.mwonya.com/ios/Requests/endpoints/all_notifications.php?page=${page}&userID=${encodeURIComponent(
           query
         )}`
       );

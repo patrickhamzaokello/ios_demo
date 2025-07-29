@@ -38,6 +38,7 @@ const AlbumScreen = () => {
     );
   }
 
+
   return (
     <ScreenWrapper>
       <AlbumDetails data={data} goBack={() => {}} goMore={() => {}} />

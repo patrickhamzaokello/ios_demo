@@ -4,6 +4,7 @@ import TrackPlayer, { Capability, RatingType, RepeatMode } from 'react-native-tr
 const setupPlayer = async () => {
 	await TrackPlayer.setupPlayer({
 		maxCacheSize: 1024 * 10,
+		autoHandleInterruptions: true
 	})
 
 	await TrackPlayer.updateOptions({
@@ -14,10 +15,11 @@ const setupPlayer = async () => {
 			Capability.SkipToNext,
 			Capability.SkipToPrevious,
 			Capability.Stop,
+			Capability.Like
 		],
 	})
 
-	await TrackPlayer.setVolume(0.3) // not too loud
+	await TrackPlayer.setVolume(0.5) // not too loud
 	await TrackPlayer.setRepeatMode(RepeatMode.Queue)
 }
 

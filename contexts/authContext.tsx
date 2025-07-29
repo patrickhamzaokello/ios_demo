@@ -13,7 +13,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, (firebaseUser) => {
-            // console.log("firebaseuser", firebaseUser)
             if (firebaseUser) {
                 setUser({
                     uid: firebaseUser?.uid,
@@ -25,7 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 router.replace("/(tabs)/(home)");
             } else {
                 setUser(null);
-                router.replace("/(auth)/welcome");
+                // router.replace("/(auth)/welcome");
             }
         });
 
@@ -38,7 +37,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return { success: true };
         } catch (error: any) {
             let msg = error.message;
-            console.log("error message: ", msg);
             if (msg.includes("auth/invalid-credential")) {
                 msg = "Invalid Credentials";
             }
@@ -62,7 +60,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return { success: true };
         } catch (error: any) {
             let msg = error.message;
-            console.log("error message: ", msg);
             if (msg.includes("auth/email-already-in-use")) {
                 msg = "This email is already in use";
             }
@@ -92,7 +89,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         } catch (error: any) {
             let msg = error.message;
-            console.log("error", error);
         }
     };
 

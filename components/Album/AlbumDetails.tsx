@@ -127,6 +127,7 @@ const AlbumDetails: React.FC<AlbumDetailsProps> = ({ data, goBack, goMore }) => 
               id={generateTracksListId(albumData.id, search)}
               tracks={filteredTracks}
               scrollEnabled={false}
+              rendertype="album"
             />
           </View>
         )}

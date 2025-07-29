@@ -76,7 +76,6 @@ export default function HomeScreen() {
     tracks: Track[],
     id: string
   ) => {
-    console.log("Selected track:", selectedTrack);
     const trackIndex = tracks.findIndex(
       (track) => track.url === selectedTrack.url
     );

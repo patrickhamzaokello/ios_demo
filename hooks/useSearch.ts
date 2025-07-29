@@ -24,13 +24,13 @@ const useSearch = (query: string, page = 1) => {
 
       try {
         const response = await fetch(
-          `https://api.mwonya.com/v1/Requests/endpoints/search.php?page=${page}&key_query=${encodeURIComponent(
+          `https://test.mwonya.com/ios/Requests/endpoints/search.php?page=${page}&key_query=${encodeURIComponent(
             query
           )}`
         );
-        
+
         const result = await response.json();
-        
+
         // Extract all the metadata from the API response
         setData(result.search_results || []);
         setSuggestedWord(result.suggested_words || "");
@@ -47,15 +47,15 @@ const useSearch = (query: string, page = 1) => {
     fetchData();
   }, [query, page]);
 
-  return { 
-    data, 
-    isLoading, 
-    error, 
-    suggestedWord, 
+  return {
+    data,
+    isLoading,
+    error,
+    suggestedWord,
     totalResults,
     totalPages,
     currentPage,
-    hasMore: currentPage < totalPages
+    hasMore: currentPage < totalPages,
   };
 };
 

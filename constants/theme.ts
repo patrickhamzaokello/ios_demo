@@ -1,7 +1,7 @@
 import { scale, verticalScale } from "@/utils/styling";
 
 export const colors = {
-  primary: "#a3e635",
+  primary: "#7d33fb",
   primaryLight: "#d9f99d",
   primaryDark: "#6a9a1a",
   text: "#fff",
@@ -34,6 +34,7 @@ export const colors = {
 };
 
 export const spacingX = {
+  _2: scale(2),
   _3: scale(3),
   _4: scale(4),
   _5: scale(5),
@@ -52,6 +53,7 @@ export const spacingX = {
 };
 
 export const spacingY = {
+  _1: verticalScale(1),
   _2: verticalScale(2),
   _3: verticalScale(3),
   _4: verticalScale(4),
@@ -81,9 +83,12 @@ export const radius = {
   _4: verticalScale(4),
   _6: verticalScale(6),
   _8: verticalScale(8),
+  _9: verticalScale(9),
   _10: verticalScale(10),
   _12: verticalScale(12),
+  _14: verticalScale(14),
   _15: verticalScale(15),
+  _16: verticalScale(16),
   _17: verticalScale(17),
   _20: verticalScale(20),
   _30: verticalScale(30),
