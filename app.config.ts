@@ -62,6 +62,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
+    [
+      "@react-native-google-signin/google-signin",
+      {
+        "iosUrlScheme": "com.googleusercontent.apps.1031020224121-trmppfnusv7kp4690idkku75jbh0os1h"
+      }
+    ],
     "expo-router",
     [
       "expo-splash-screen",
