@@ -9,7 +9,6 @@ import Input from '@/components/input'
 import Button from '@/components/Button'
 import { useRouter } from 'expo-router'
 import { generateUsername } from '@/utils/usernameGenerator'
-import { api_register } from '@/api/authService'
 import { useAuth } from '@/contexts/authContext'
 import { AntDesign, Feather, SimpleLineIcons } from '@expo/vector-icons'
 

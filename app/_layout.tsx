@@ -1,5 +1,6 @@
 import { playbackService } from "@/constants/playbackService";
 import { colors } from "@/constants/tokens";
+import { AuthProvider } from "@/contexts/authContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { useLogTrackPlayerState } from "@/hooks/useLogTrackPlayerState";
 import { useSetupTrackPlayer } from "@/hooks/useSetupTrackPlayer";
@@ -68,15 +69,16 @@ const App = () => {
   }
 
   return (
-    <NotificationProvider>
-      <SafeAreaProvider>
-        <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
-          <RootNavigation />
-
-          <StatusBar style="auto" />
-        </GestureHandlerRootView>
-      </SafeAreaProvider>
-    </NotificationProvider>
+    <AuthProvider>
+      <NotificationProvider>
+        <SafeAreaProvider>
+          <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
+            <RootNavigation />
+            <StatusBar style="auto" />
+          </GestureHandlerRootView>
+        </SafeAreaProvider>
+      </NotificationProvider>
+    </AuthProvider>
   );
 };
 

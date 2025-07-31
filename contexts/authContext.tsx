@@ -1,5 +1,5 @@
 import { AuthContextType, UserType } from "@/types";
-import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth, firestore } from "@/config/firebase";
 import { doc, setDoc, getDoc } from "@firebase/firestore";
@@ -24,7 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 router.replace("/(tabs)/(home)");
             } else {
                 setUser(null);
-                // router.replace("/(auth)/welcome");
+                router.replace("/(auth)/welcome");
             }
         });
 
@@ -68,6 +68,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const forgotPassword = async (email: string) => {
+        try {
+            await sendPasswordResetEmail(auth, email);
+            return { success: true };
+        } catch (error: any) {
+            let msg = error.message;
+            if (msg.includes("auth/user-not-found")) {
+                msg = "This email is not registered";
+            }
+            return { success: false, msg };
+        }
+    };
+
     const updateUserData = async (uid: string) => {
         try {
             const docRef = doc(firestore, "users", uid);
@@ -97,7 +110,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser,
         login,
         register,
-        updateUserData
+        updateUserData,
+        forgotPassword
     };
 
     return (

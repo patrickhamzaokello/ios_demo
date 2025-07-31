@@ -8,7 +8,6 @@ import BackButton from '@/components/BackButton'
 import Input from '@/components/input'
 import Button from '@/components/Button'
 import { useRouter } from 'expo-router'
-import { api_login } from '@/api/authService';
 import { useAuth } from '@/contexts/authContext'
 import { AntDesign, Entypo, Feather } from '@expo/vector-icons'
 
@@ -38,8 +37,6 @@ const Login = () => {
       Alert.alert("Login Failed", "Please enter a valid email address");
       return;
     }
-
-
 
     setIsLoading(true);
     try {
@@ -93,7 +90,7 @@ const Login = () => {
           />
 
 
-          <Typo size={14} color={colors.text} style={{ alignSelf: "flex-end" }}>Forgot password?</Typo>
+          <Pressable onPress={() => router.navigate('/(auth)/reset-password')}><Typo size={14} color={colors.text} style={{ alignSelf: "flex-end" }}>Forgot password?</Typo></Pressable>
 
           <Button loading={isLoading} onPress={handleSubmit}>
             <Typo fontWeight={"400"} color={colors.black} size={21}>

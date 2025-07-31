@@ -75,6 +75,7 @@ export type AuthContextType = {
           user_name: string
      ) => Promise<{ success: boolean; msg?: string }>;
      updateUserData: (userId: string) => Promise<void>;
+     forgotPassword:(email: string) => Promise<{ success: boolean; msg?: string }>;
 }
 
 
