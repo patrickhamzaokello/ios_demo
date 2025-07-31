@@ -12,7 +12,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import TrackPlayer from "react-native-track-player";
-import * as Device from 'expo-device';
+import * as Device from "expo-device";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -50,6 +51,11 @@ const App = () => {
 
   const onLayoutRootView = useCallback(() => {
     if (appIsReady) {
+      GoogleSignin.configure({
+        iosClientId:
+          "1031020224121-trmppfnusv7kp4690idkku75jbh0os1h.apps.googleusercontent.com",
+        profileImageSize: 120,
+      });
       SplashScreen.hideAsync;
     }
   }, [appIsReady]);
@@ -72,7 +78,10 @@ const App = () => {
     <AuthProvider>
       <NotificationProvider>
         <SafeAreaProvider>
-          <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
+          <GestureHandlerRootView
+            style={{ flex: 1 }}
+            onLayout={onLayoutRootView}
+          >
             <RootNavigation />
             <StatusBar style="auto" />
           </GestureHandlerRootView>

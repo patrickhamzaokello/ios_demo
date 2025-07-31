@@ -36,6 +36,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   newArchEnabled: true,
   ios: {
     supportsTablet: true,
+    usesAppleSignIn: true,
     infoPlist: {
       UIBackgroundModes: ["audio", "audio"],
       NSAppleMusicUsageDescription: "This app uses audio playback.",
@@ -47,6 +48,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       tinted: "./assets/icons/ios-tinted.png",
     },
     bundleIdentifier: getUniqueIdentifier(),
+    config: {
+      usesNonExemptEncryption: false,
+    },
   },
   android: {
     adaptiveIcon: {
@@ -62,11 +66,21 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
+    "expo-apple-authentication",
     [
       "@react-native-google-signin/google-signin",
       {
-        "iosUrlScheme": "com.googleusercontent.apps.1031020224121-trmppfnusv7kp4690idkku75jbh0os1h"
-      }
+        iosUrlScheme:
+          "com.googleusercontent.apps.1031020224121-trmppfnusv7kp4690idkku75jbh0os1h",
+      },
+    ],
+    [
+      "expo-secure-store",
+      {
+        configureAndroidBackup: true,
+        faceIDPermission:
+          "Allow $(PRODUCT_NAME) to access your Face ID biometric data.",
+      },
     ],
     "expo-router",
     [

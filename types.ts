@@ -63,6 +63,7 @@ export type UserType = {
 export type AuthContextType = {
      user: UserType;
      setUser: Function;
+     login_with_google: (auth_token: string) => Promise<{ success: boolean; msg?: string }>;
      login: (
           email: string,
           password: string
