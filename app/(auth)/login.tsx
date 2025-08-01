@@ -213,8 +213,8 @@ const Login = () => {
 
 <AppleAuthentication.AppleAuthenticationButton
         buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-        buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-        cornerRadius={5}
+        buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+        cornerRadius={17}
         style={styles.apple_special_button}
         onPress={async () => {
           try {
@@ -224,6 +224,8 @@ const Login = () => {
                 AppleAuthentication.AppleAuthenticationScope.EMAIL,
               ],
             });
+
+            console.log("Apple Sign-In Credential:", credential);
             // signed in
           } catch (e) {
             if ((e as { code: string }).code === 'ERR_REQUEST_CANCELED') {
@@ -274,8 +276,11 @@ const styles = StyleSheet.create({
     gap: spacingX._10,
   },
   apple_special_button: {
-    width: 200,
-    height: 44,
+    height: verticalScale(52),
+    justifyContent: 'center',
+    alignItems: 'center',
+    fontWeight: "400",
+    fontSize: 21
   },
   welcomeText: {
     fontSize: verticalScale(20),
