@@ -56,7 +56,7 @@ const App = () => {
           "1031020224121-trmppfnusv7kp4690idkku75jbh0os1h.apps.googleusercontent.com",
         profileImageSize: 120,
       });
-      SplashScreen.hideAsync;
+      SplashScreen.hideAsync();
     }
   }, [appIsReady]);
 
@@ -93,9 +93,9 @@ const App = () => {
 
 const RootNavigation = () => {
   return (
-    <Stack>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+      
       <Stack.Screen
         name="player"
         options={{
@@ -103,21 +103,13 @@ const RootNavigation = () => {
           gestureEnabled: true,
           gestureDirection: "vertical",
           animationDuration: 400,
-          headerShown: false,
         }}
       />
-
+      
       <Stack.Screen
         name="(modals)/addToPlaylist"
         options={{
           presentation: "modal",
-          headerStyle: {
-            backgroundColor: colors.background,
-          },
-          headerTitle: "Add to playlist",
-          headerTitleStyle: {
-            color: colors.text,
-          },
         }}
       />
     </Stack>
