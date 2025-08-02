@@ -7,13 +7,13 @@ import { colors, spacingX, spacingY } from "@/constants/theme";
 import { useAuth } from "@/contexts/authContext";
 import { verticalScale } from "@/utils/styling";
 import { AntDesign, Feather } from "@expo/vector-icons";
-import * as AppleAuthentication from 'expo-apple-authentication';
 import {
   GoogleSignin,
   isErrorWithCode,
   isSuccessResponse,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
+import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import { Alert, Image, Pressable, StyleSheet, View } from "react-native";
@@ -26,7 +26,33 @@ const Login = () => {
 
   const router = useRouter();
 
-  const { login: loginUser, login_with_google } = useAuth();
+  const { login: loginUser, login_with_google_apple } = useAuth();
+
+  const handleAppleSignIn = async () => {
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      const { identityToken, user } = credential;
+
+      if (identityToken) {
+        const res = await login_with_google_apple(identityToken, "apple");
+        if (res.success) {
+          Alert.alert("Login Successful", res.msg);
+        } else {
+          Alert.alert("Login Failed", res.msg);
+        }
+      } else {
+        Alert.alert("Apple Sign-In Failed", "ID Token is missing.");
+      }
+    } catch (e) {
+      console.error("Apple Sign-In Error:", e);
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     try {
@@ -36,7 +62,7 @@ const Login = () => {
       if (isSuccessResponse(response)) {
         const { idToken, user } = response.data;
         if (idToken) {
-          const res = await login_with_google(idToken);
+          const res = await login_with_google_apple(idToken, "google");
           if (res.success) {
             Alert.alert("Login Successful", res.msg);
           } else {
@@ -209,36 +235,20 @@ const Login = () => {
             )}
           </Button>
 
-{/* apple sign in  */}
+          {/* apple sign in  */}
 
-<AppleAuthentication.AppleAuthenticationButton
-        buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-        buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-        cornerRadius={17}
-        style={styles.apple_special_button}
-        onPress={async () => {
-          try {
-            const credential = await AppleAuthentication.signInAsync({
-              requestedScopes: [
-                AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-                AppleAuthentication.AppleAuthenticationScope.EMAIL,
-              ],
-            });
-
-            console.log("Apple Sign-In Credential:", credential);
-            // signed in
-          } catch (e) {
-            if ((e as { code: string }).code === 'ERR_REQUEST_CANCELED') {
-              // handle that the user canceled the sign-in flow
-            } else {
-              // handle other errors
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={
+              AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN
             }
-          }
-        }}
-      />
-{/* apple sign in */}
-
-
+            buttonStyle={
+              AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+            }
+            cornerRadius={17}
+            style={styles.apple_special_button}
+            onPress={handleAppleSignIn}
+          />
+          {/* apple sign in */}
         </View>
 
         {/* footer */}
@@ -268,7 +278,7 @@ const styles = StyleSheet.create({
     gap: spacingY._30,
     paddingHorizontal: spacingX._20,
   },
-  social_button:{
+  social_button: {
     backgroundColor: colors.neutral100,
     flexDirection: "row",
     justifyContent: "center",
@@ -277,10 +287,10 @@ const styles = StyleSheet.create({
   },
   apple_special_button: {
     height: verticalScale(52),
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     fontWeight: "400",
-    fontSize: 21
+    fontSize: 21,
   },
   welcomeText: {
     fontSize: verticalScale(20),

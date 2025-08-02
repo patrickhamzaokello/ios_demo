@@ -55,11 +55,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const login_with_google = async (idToken: string) => {
+  const login_with_google_apple = async (idToken: string, provider: string) => {
     try {
+      // Validate provider
+      if (provider !== "google" && provider !== "apple") {
+        return { success: false, msg: "Invalid provider specified." };
+      }
+      // Check if idToken is provided
+      if (!idToken) {
+        return { success: false, msg: "ID Token is required." };
+      }
+      // Check if SecureStore is available
+      const isSecureStoreAvailable = await SecureStore.isAvailableAsync();
+      if (!isSecureStoreAvailable) {
+        return { success: false, msg: "SecureStore is not available." };
+      }
+      // Check if the user is already logged in
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        // User is already logged in, no need to proceed with social auth
+        return { success: true, msg: "User already logged in." };
+      }
+      // If the user is not logged in, proceed with social auth    
+      const backend_url = provider === "google" ? "https://backend.aeacbio.com/social_auth/google/" : "https://backend.aeacbio.com/social_auth/apple/";
       // Make the backend request
       const backendResponse = await fetch(
-        "https://backend.aeacbio.com/social_auth/google/",
+        backend_url,
         {
           method: "POST",
           headers: {
@@ -177,7 +198,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     user,
     setUser,
     login,
-    login_with_google,
+    login_with_google_apple,
     register,
     updateUserData,
     forgotPassword,
