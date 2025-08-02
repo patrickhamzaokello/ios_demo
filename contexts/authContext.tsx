@@ -1,14 +1,6 @@
-import { auth, firestore } from "@/config/firebase";
 import { AuthContextType, UserType } from "@/types";
-import { doc, getDoc, setDoc } from "@firebase/firestore";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import {
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-} from "firebase/auth";
 import { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -17,41 +9,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<UserType>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
+  // Check for existing authentication on app start
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        setUser({
-          uid: firebaseUser?.uid,
-          email: firebaseUser?.email,
-          full_name: firebaseUser?.displayName,
-        });
+    checkAuthState();
+  }, []);
 
-        updateUserData(firebaseUser.uid);
+  const checkAuthState = async () => {
+    try {
+      const accessToken = await SecureStore.getItemAsync("accessToken");
+      const userData = await SecureStore.getItemAsync("userData");
+      
+      if (accessToken ) {
+        // const parsedUser = JSON.parse(userData);
+        // setUser(parsedUser);
         router.replace("/(tabs)/(home)");
       } else {
-        setUser(null);
         router.replace("/(auth)/welcome");
       }
-    });
-
-    return () => unsub();
-  }, []);
+    } catch (error) {
+      console.error("Error checking auth state:", error);
+      router.replace("/(auth)/welcome");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const login = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      return { success: true };
+      const response = await fetch("https://backend.aeacbio.com/auth/login/", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store tokens and user data
+        const { tokens, user: userData } = data;
+        
+        if (tokens?.access && tokens?.refresh) {
+          await SecureStore.setItemAsync("accessToken", tokens.access);
+          await SecureStore.setItemAsync("refreshToken", tokens.refresh);
+        }
+
+        if (userData) {
+          await SecureStore.setItemAsync("userData", JSON.stringify(userData));
+          setUser(userData);
+        }
+
+        router.replace("/(tabs)/(home)");
+        return { success: true };
+      } else {
+        let msg = data?.message || "Login failed";
+        if (msg.includes("invalid-credential") || msg.includes("Invalid credentials")) {
+          msg = "Invalid Credentials";
+        }
+        if (msg.includes("invalid-email")) {
+          msg = "Invalid Email";
+        }
+        return { success: false, msg };
+      }
     } catch (error: any) {
-      let msg = error.message;
-      if (msg.includes("auth/invalid-credential")) {
-        msg = "Invalid Credentials";
-      }
-      if (msg.includes("auth/invalid-email")) {
-        msg = "Invalid Email";
-      }
-      return { success: false, msg };
+      return { 
+        success: false, 
+        msg: error?.message || "Network error. Please try again." 
+      };
     }
   };
 
@@ -61,68 +93,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (provider !== "google" && provider !== "apple") {
         return { success: false, msg: "Invalid provider specified." };
       }
+      
       // Check if idToken is provided
       if (!idToken) {
         return { success: false, msg: "ID Token is required." };
       }
+      
       // Check if SecureStore is available
       const isSecureStoreAvailable = await SecureStore.isAvailableAsync();
       if (!isSecureStoreAvailable) {
         return { success: false, msg: "SecureStore is not available." };
       }
+      
       // Check if the user is already logged in
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        // User is already logged in, no need to proceed with social auth
+      const currentAccessToken = await SecureStore.getItemAsync("accessToken");
+      if (currentAccessToken) {
         return { success: true, msg: "User already logged in." };
       }
-      // If the user is not logged in, proceed with social auth    
-      const backend_url = provider === "google" ? "https://backend.aeacbio.com/social_auth/google/" : "https://backend.aeacbio.com/social_auth/apple/";
+      
+      const backend_url = provider === "google" 
+        ? "https://backend.aeacbio.com/social_auth/google/" 
+        : "https://backend.aeacbio.com/social_auth/apple/";
+      
       // Make the backend request
-      const backendResponse = await fetch(
-        backend_url,
-        {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            auth_token: idToken, // Pass the ID token from Google Sign-In
-          }),
-        }
-      );
+      const backendResponse = await fetch(backend_url, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          auth_token: idToken,
+        }),
+      });
 
       const backendData = await backendResponse.json();
 
       if (backendResponse.ok) {
         // Store the tokens securely
-        const { tokens } = backendData;
+        const { tokens, user: userData } = backendData;
         if (tokens?.access && tokens?.refresh) {
           await SecureStore.setItemAsync("accessToken", tokens.access);
           await SecureStore.setItemAsync("refreshToken", tokens.refresh);
         }
 
-        // Optionally, store other user details if needed
-        if (backendData.email) {
-          await SecureStore.setItemAsync("email", backendData.email);
-        }
-        if (backendData.username) {
-          await SecureStore.setItemAsync("username", backendData.username);
+        // Store user data
+        if (userData) {
+          await SecureStore.setItemAsync("userData", JSON.stringify(userData));
+          setUser(userData);
+        } else {
+          // Fallback to individual fields if user object not provided
+          const fallbackUser = {
+            uid: backendData.uid || null,
+            email: backendData.email || null,
+            full_name: backendData.full_name || backendData.username || null,
+            phone_number: backendData.phone_number || null,
+            user_name: backendData.username || null,
+            image: backendData.image || null,
+          };
+          await SecureStore.setItemAsync("userData", JSON.stringify(fallbackUser));
+          setUser(fallbackUser);
         }
 
-        // Return success response
+        router.replace("/(tabs)/(home)");
         return { success: true, msg: "Login Successful" };
       } else {
-        // Handle backend errors
-        const errorMsg =
-          backendData?.message || "An error occurred. Please try again.";
+        const errorMsg = "An error occurred. Please try again.";
         return { success: false, msg: errorMsg };
       }
     } catch (error: any) {
-      // Handle unexpected errors
-      const errorMsg =
-        error?.message || "An unexpected error occurred. Please try again.";
+      const errorMsg =  "An unexpected error occurred. Please try again.";
       return { success: false, msg: errorMsg };
     }
   };
@@ -135,62 +175,185 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     username: string
   ) => {
     try {
-      let response = await createUserWithEmailAndPassword(
-        auth,
-        user_email,
-        user_password
-      );
-      await setDoc(doc(firestore, "users", response?.user?.uid), {
-        user_fullname,
-        username,
-        phone_number,
-        user_email,
-        uid: response?.user?.uid,
+      const response = await fetch("https://backend.aeacbio.com/auth/register/", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: user_email,
+          password: user_password,
+          phone_number,
+          full_name: user_fullname,
+          username,
+        }),
       });
-      return { success: true };
-    } catch (error: any) {
-      let msg = error.message;
-      if (msg.includes("auth/email-already-in-use")) {
-        msg = "This email is already in use";
-      }
 
-      return { success: false, msg };
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store tokens and user data after successful registration
+        const { tokens, user: userData } = data;
+        
+        if (tokens?.access && tokens?.refresh) {
+          await SecureStore.setItemAsync("accessToken", tokens.access);
+          await SecureStore.setItemAsync("refreshToken", tokens.refresh);
+        }
+
+        if (userData) {
+          await SecureStore.setItemAsync("userData", JSON.stringify(userData));
+          setUser(userData);
+        }
+
+        router.replace("/(tabs)/(home)");
+        return { success: true };
+      } else {
+        let msg = data?.message || "Registration failed";
+        if (msg.includes("email-already-in-use") || msg.includes("already exists")) {
+          msg = "This email is already in use";
+        }
+        return { success: false, msg };
+      }
+    } catch (error: any) {
+      return { 
+        success: false, 
+        msg: error?.message || "Network error. Please try again." 
+      };
     }
   };
 
   const forgotPassword = async (email: string) => {
     try {
-      await sendPasswordResetEmail(auth, email);
-      return { success: true };
-    } catch (error: any) {
-      let msg = error.message;
-      if (msg.includes("auth/user-not-found")) {
-        msg = "This email is not registered";
+      const response = await fetch("https://backend.aeacbio.com/auth/forgot-password/", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        return { success: true };
+      } else {
+        let msg = data?.message || "Failed to send reset email";
+        if (msg.includes("user-not-found") || msg.includes("not found")) {
+          msg = "This email is not registered";
+        }
+        return { success: false, msg };
       }
-      return { success: false, msg };
+    } catch (error: any) {
+      return { 
+        success: false, 
+        msg: error?.message || "Network error. Please try again." 
+      };
     }
   };
 
-  const updateUserData = async (uid: string) => {
+  const updateUserData = async (uid?: string) => {
     try {
-      const docRef = doc(firestore, "users", uid);
-      const docSnap = await getDoc(docRef);
+      const accessToken = await SecureStore.getItemAsync("accessToken");
+      if (!accessToken) {
+        return { success: false, msg: "No access token found" };
+      }
 
-      if (docSnap.exists()) {
-        const data = docSnap.data();
+      const response = await fetch("https://backend.aeacbio.com/auth/user/", {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
         const userData: UserType = {
-          uid: data?.uid,
-          email: data.user_email || null,
-          full_name: data.user_fullname || null,
-          phone_number: data.phone_number || null,
-          user_name: data.username || null,
-          image: data.image || null,
+          uid: data?.uid || data?.id,
+          email: data?.email,
+          full_name: data?.full_name || data?.user_fullname,
+          phone_number: data?.phone_number,
+          user_name: data?.username || data?.user_name,
+          image: data?.image || data?.profile_image,
         };
 
-        setUser({ ...userData });
+        await SecureStore.setItemAsync("userData", JSON.stringify(userData));
+        setUser(userData);
+        return { success: true };
+      } else {
+        return { success: false, msg: data?.message || "Failed to update user data" };
       }
     } catch (error: any) {
-      let msg = error.message;
+      return { 
+        success: false, 
+        msg: error?.message || "Network error. Please try again." 
+      };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      // Clear all stored data
+      await SecureStore.deleteItemAsync("accessToken");
+      await SecureStore.deleteItemAsync("refreshToken");
+      await SecureStore.deleteItemAsync("userData");
+      await SecureStore.deleteItemAsync("email");
+      await SecureStore.deleteItemAsync("username");
+
+      // Clear user state
+      setUser(null);
+      
+      // Navigate to welcome screen
+      router.replace("/(auth)/welcome");
+      
+      return { success: true };
+    } catch (error: any) {
+      return { 
+        success: false, 
+        msg: error?.message || "Logout failed" 
+      };
+    }
+  };
+
+  const refreshTokens = async () => {
+    try {
+      const refreshToken = await SecureStore.getItemAsync("refreshToken");
+      if (!refreshToken) {
+        throw new Error("No refresh token found");
+      }
+
+      const response = await fetch("https://backend.aeacbio.com/auth/refresh/", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          refresh: refreshToken,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const { access } = data;
+        if (access) {
+          await SecureStore.setItemAsync("accessToken", access);
+          return { success: true, accessToken: access };
+        }
+      }
+      
+      throw new Error("Failed to refresh token");
+    } catch (error) {
+      // If refresh fails, logout user
+      await logout();
+      return { success: false, msg: "Session expired. Please login again." };
     }
   };
 
@@ -198,6 +361,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     user,
     setUser,
     login,
+    logout,
     login_with_google_apple,
     register,
     updateUserData,

@@ -68,9 +68,11 @@ export type AuthContextType = {
   user: UserType;
   setUser: Function;
   login_with_google_apple: (
-    auth_token: string, provider: "google" | "apple"
+    auth_token: string,
+    provider: "google" | "apple"
   ) => Promise<{ success: boolean; msg?: string }>;
-
+  updateUserData(userId: string): Promise<{ success: boolean; msg?: string }>;
+  logout: () => Promise<{ success: boolean; msg?: string }>;
   login: (
     email: string,
     password: string
@@ -82,7 +84,6 @@ export type AuthContextType = {
     name: string,
     user_name: string
   ) => Promise<{ success: boolean; msg?: string }>;
-  updateUserData: (userId: string) => Promise<void>;
   forgotPassword: (
     email: string
   ) => Promise<{ success: boolean; msg?: string }>;

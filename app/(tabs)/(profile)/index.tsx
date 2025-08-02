@@ -1,7 +1,5 @@
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image } from 'react-native'
 import React from 'react'
-import { signOut } from 'firebase/auth'
-import { auth } from '@/config/firebase'
 import Button from '@/components/Button'
 import Typo from '@/components/Typo'
 import { colors, spacingX, spacingY, radius, fontSize, fontWeight, shadow } from '@/constants/theme'
@@ -10,11 +8,11 @@ import ScreenWrapper from '@/components/ScreenWrapper'
 import { Ionicons } from '@expo/vector-icons' // Assuming you're using Expo
 
 const Profile = () => {
-    const { user } = useAuth();
+    const { user,logout } = useAuth();
 
     const handleLogout = async () => {
         try {
-            await signOut(auth)
+            await logout()
         } catch (error) {
             console.error('Logout error:', error)
         }
