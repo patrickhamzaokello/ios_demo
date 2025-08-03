@@ -21,10 +21,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const accessToken = await SecureStore.getItemAsync("accessToken");
       const userData = await SecureStore.getItemAsync("userData");
-      
-      if (accessToken ) {
-        // const parsedUser = JSON.parse(userData);
-        // setUser(parsedUser);
+      if (accessToken) {
+        const parsedUser = userData ? JSON.parse(userData) : null;
+        setUser(parsedUser);
         router.replace("/(tabs)/(home)");
       } else {
         router.replace("/(auth)/welcome");
@@ -56,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (response.ok) {
         // Store tokens and user data
         const { tokens, user: userData } = data;
-        
+
         if (tokens?.access && tokens?.refresh) {
           await SecureStore.setItemAsync("accessToken", tokens.access);
           await SecureStore.setItemAsync("refreshToken", tokens.refresh);
@@ -71,7 +70,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return { success: true };
       } else {
         let msg = data?.message || "Login failed";
-        if (msg.includes("invalid-credential") || msg.includes("Invalid credentials")) {
+        if (
+          msg.includes("invalid-credential") ||
+          msg.includes("Invalid credentials")
+        ) {
           msg = "Invalid Credentials";
         }
         if (msg.includes("invalid-email")) {
@@ -80,41 +82,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return { success: false, msg };
       }
     } catch (error: any) {
-      return { 
-        success: false, 
-        msg: error?.message || "Network error. Please try again." 
+      return {
+        success: false,
+        msg: error?.message || "Network error. Please try again.",
       };
     }
   };
 
   const login_with_google_apple = async (idToken: string, provider: string) => {
+    console.log("Login with provider:", provider, "ID Token:", idToken);
     try {
       // Validate provider
       if (provider !== "google" && provider !== "apple") {
         return { success: false, msg: "Invalid provider specified." };
       }
-      
+
       // Check if idToken is provided
       if (!idToken) {
         return { success: false, msg: "ID Token is required." };
       }
-      
+
       // Check if SecureStore is available
       const isSecureStoreAvailable = await SecureStore.isAvailableAsync();
       if (!isSecureStoreAvailable) {
         return { success: false, msg: "SecureStore is not available." };
       }
-      
+
       // Check if the user is already logged in
       const currentAccessToken = await SecureStore.getItemAsync("accessToken");
       if (currentAccessToken) {
+        router.replace("/(tabs)/(home)");
         return { success: true, msg: "User already logged in." };
       }
-      
-      const backend_url = provider === "google" 
-        ? "https://backend.aeacbio.com/social_auth/google/" 
-        : "https://backend.aeacbio.com/social_auth/apple/";
-      
+
+      const backend_url =
+        provider === "google"
+          ? "https://backend.aeacbio.com/social_auth/google/"
+          : "https://backend.aeacbio.com/social_auth/apple/";
+
       // Make the backend request
       const backendResponse = await fetch(backend_url, {
         method: "POST",
@@ -131,6 +136,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (backendResponse.ok) {
         // Store the tokens securely
+        console.log("Backend Response:", backendData);
+
         const { tokens, user: userData } = backendData;
         if (tokens?.access && tokens?.refresh) {
           await SecureStore.setItemAsync("accessToken", tokens.access);
@@ -151,7 +158,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             user_name: backendData.username || null,
             image: backendData.image || null,
           };
-          await SecureStore.setItemAsync("userData", JSON.stringify(fallbackUser));
+          await SecureStore.setItemAsync(
+            "userData",
+            JSON.stringify(fallbackUser)
+          );
           setUser(fallbackUser);
         }
 
@@ -162,7 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return { success: false, msg: errorMsg };
       }
     } catch (error: any) {
-      const errorMsg =  "An unexpected error occurred. Please try again.";
+      const errorMsg = "An unexpected error occurred. Please try again.";
       return { success: false, msg: errorMsg };
     }
   };
@@ -175,27 +185,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     username: string
   ) => {
     try {
-      const response = await fetch("https://backend.aeacbio.com/auth/register/", {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: user_email,
-          password: user_password,
-          phone_number,
-          full_name: user_fullname,
-          username,
-        }),
-      });
+      const response = await fetch(
+        "https://backend.aeacbio.com/auth/register/",
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: user_email,
+            password: user_password,
+            phone_number,
+            full_name: user_fullname,
+            username,
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (response.ok) {
         // Store tokens and user data after successful registration
         const { tokens, user: userData } = data;
-        
+
         if (tokens?.access && tokens?.refresh) {
           await SecureStore.setItemAsync("accessToken", tokens.access);
           await SecureStore.setItemAsync("refreshToken", tokens.refresh);
@@ -210,31 +223,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return { success: true };
       } else {
         let msg = data?.message || "Registration failed";
-        if (msg.includes("email-already-in-use") || msg.includes("already exists")) {
+        if (
+          msg.includes("email-already-in-use") ||
+          msg.includes("already exists")
+        ) {
           msg = "This email is already in use";
         }
         return { success: false, msg };
       }
     } catch (error: any) {
-      return { 
-        success: false, 
-        msg: error?.message || "Network error. Please try again." 
+      return {
+        success: false,
+        msg: error?.message || "Network error. Please try again.",
       };
     }
   };
 
   const forgotPassword = async (email: string) => {
     try {
-      const response = await fetch("https://backend.aeacbio.com/auth/forgot-password/", {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-        }),
-      });
+      const response = await fetch(
+        "https://backend.aeacbio.com/auth/forgot-password/",
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -248,9 +267,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return { success: false, msg };
       }
     } catch (error: any) {
-      return { 
-        success: false, 
-        msg: error?.message || "Network error. Please try again." 
+      return {
+        success: false,
+        msg: error?.message || "Network error. Please try again.",
       };
     }
   };
@@ -287,12 +306,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setUser(userData);
         return { success: true };
       } else {
-        return { success: false, msg: data?.message || "Failed to update user data" };
+        return {
+          success: false,
+          msg: data?.message || "Failed to update user data",
+        };
       }
     } catch (error: any) {
-      return { 
-        success: false, 
-        msg: error?.message || "Network error. Please try again." 
+      return {
+        success: false,
+        msg: error?.message || "Network error. Please try again.",
       };
     }
   };
@@ -308,15 +330,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Clear user state
       setUser(null);
-      
+
       // Navigate to welcome screen
       router.replace("/(auth)/welcome");
-      
+
       return { success: true };
     } catch (error: any) {
-      return { 
-        success: false, 
-        msg: error?.message || "Logout failed" 
+      return {
+        success: false,
+        msg: error?.message || "Logout failed",
       };
     }
   };
@@ -328,16 +350,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error("No refresh token found");
       }
 
-      const response = await fetch("https://backend.aeacbio.com/auth/refresh/", {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          refresh: refreshToken,
-        }),
-      });
+      const response = await fetch(
+        "https://backend.aeacbio.com/auth/refresh/",
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            refresh: refreshToken,
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -348,7 +373,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           return { success: true, accessToken: access };
         }
       }
-      
+
       throw new Error("Failed to refresh token");
     } catch (error) {
       // If refresh fails, logout user

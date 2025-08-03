@@ -1,14 +1,10 @@
-import BackButton from "@/components/BackButton";
 import Button from "@/components/Button";
-import Input from "@/components/input";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import Typo from "@/components/Typo";
 import { colors, spacingX, spacingY } from "@/constants/theme";
 import { useAuth } from "@/contexts/authContext";
 import { verticalScale } from "@/utils/styling";
-import { AntDesign, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from 'expo-blur';
 
 import {
   GoogleSignin,
@@ -19,39 +15,37 @@ import {
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
-import { Alert, Image, Pressable, StyleSheet, View, Text } from "react-native";
+import { Alert, Image, StyleSheet, Text, View } from "react-native";
 
 const SocialAuthScreen = () => {
-  const emailRef = useRef("");
-  const passWordRef = useRef("");
+
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAppleLoading, setIsAppleLoading] = useState(false);
 
   const router = useRouter();
-
   const { login_with_google_apple } = useAuth();
 
-  
   const handleTermsPress = () => {
-    console.log('Consumer Terms pressed');
+    console.log("Consumer Terms pressed");
     // Navigate to terms
   };
 
   const handleUsagePolicyPress = () => {
-    console.log('Usage Policy pressed');
+    console.log("Usage Policy pressed");
     // Navigate to usage policy
   };
 
   const handlePrivacyPolicyPress = () => {
-    console.log('Privacy Policy pressed');
+    console.log("Privacy Policy pressed");
     // Navigate to privacy policy
   };
 
   const handleAppleSignIn = async () => {
     try {
       setIsAppleLoading(true);
-      
+
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
@@ -64,8 +58,7 @@ const SocialAuthScreen = () => {
       if (identityToken) {
         const res = await login_with_google_apple(identityToken, "apple");
         if (res.success) {
-          // Success - redirect will be handled by AuthContext
-          // No need for manual navigation as AuthContext handles it
+          Alert.alert("Login Failed", res.msg);
         } else {
           Alert.alert("Login Failed", res.msg);
         }
@@ -74,9 +67,12 @@ const SocialAuthScreen = () => {
       }
     } catch (e: any) {
       // Handle Apple Sign-In cancellation gracefully
-      if (e.code !== 'ERR_REQUEST_CANCELED') {
+      if (e.code !== "ERR_REQUEST_CANCELED") {
         console.error("Apple Sign-In Error:", e);
-        Alert.alert("Apple Sign-In Error", "An unexpected error occurred. Please try again.");
+        Alert.alert(
+          "Apple Sign-In Error",
+          "An unexpected error occurred. Please try again."
+        );
       }
     } finally {
       setIsAppleLoading(false);
@@ -88,14 +84,13 @@ const SocialAuthScreen = () => {
       setIsSubmitting(true);
       await GoogleSignin.hasPlayServices();
       const response = await GoogleSignin.signIn();
-      
+
       if (isSuccessResponse(response)) {
         const { idToken, user } = response.data;
         if (idToken) {
           const res = await login_with_google_apple(idToken, "google");
           if (res.success) {
-            // Success - redirect will be handled by AuthContext
-            // No need for manual navigation as AuthContext handles it
+            Alert.alert("Login Failed", res.msg);
           } else {
             Alert.alert("Login Failed", res.msg);
           }
@@ -125,7 +120,10 @@ const SocialAuthScreen = () => {
             );
             break;
           default:
-            Alert.alert("Google Sign-In Error", "An unexpected error occurred. Please try again.");
+            Alert.alert(
+              "Google Sign-In Error",
+              "An unexpected error occurred. Please try again."
+            );
             break;
         }
       } else {
@@ -143,10 +141,12 @@ const SocialAuthScreen = () => {
     <ScreenWrapper>
       <View style={styles.container}>
         <View style={styles.radialContainer}>
-        <Image
-              source={require("@/assets/images/background_blue.png")}
-              style={{ alignSelf: "center" }}
-            />
+          <LinearGradient
+            colors={["#413DB3", "transparent"]}
+            style={styles.radialGradient}
+            start={{ x: 0.5, y: 0.5 }}
+            end={{ x: 1, y: 1 }}
+          />
         </View>
         <View style={styles.contentView}>
           <View style={{ gap: 5, marginTop: spacingY._20 }}>
@@ -163,7 +163,12 @@ const SocialAuthScreen = () => {
           {/* form */}
 
           <View style={styles.form}>
-            <Typo size={30} fontWeight={"800"} color={colors.text} style={{textAlign: "center", marginBottom: spacingY._40}}>
+            <Typo
+              size={30}
+              fontWeight={"800"}
+              color={colors.text}
+              style={{ textAlign: "center", marginBottom: spacingY._40 }}
+            >
               Join in the new wave of Ugandan Music & Podcast
             </Typo>
 
@@ -172,7 +177,7 @@ const SocialAuthScreen = () => {
               onPress={() => router.push("/(auth)/login")}
               style={styles.social_email_button}
             >
-                 <Image
+              <Image
                 source={require("@/assets/images/email_icon.png")}
                 style={{ width: 25, height: 25 }}
               />
@@ -210,7 +215,7 @@ const SocialAuthScreen = () => {
                 cornerRadius={17}
                 style={[
                   styles.apple_special_button,
-                  (isAppleLoading || isSubmitting) && styles.disabledButton
+                  (isAppleLoading || isSubmitting) && styles.disabledButton,
                 ]}
                 onPress={handleAppleSignIn}
               />
@@ -223,18 +228,18 @@ const SocialAuthScreen = () => {
             {/* apple sign in */}
           </View>
           {/* footer */}
-           {/* Terms and Privacy */}
-           <View style={styles.termsContainer}>
+          {/* Terms and Privacy */}
+          <View style={styles.termsContainer}>
             <Text style={styles.termsText}>
-              By continuing, you agree to Mwonya's{' '}
+              By continuing, you agree to Mwonya's{" "}
               <Text style={styles.linkText} onPress={handleTermsPress}>
                 Consumer Terms
-              </Text>
-              {' '}and{' '}
+              </Text>{" "}
+              and{" "}
               <Text style={styles.linkText} onPress={handleUsagePolicyPress}>
                 Usage Policy
               </Text>
-              , and{'\n'}acknowledge their{' '}
+              , and{"\n"}acknowledge their{" "}
               <Text style={styles.linkText} onPress={handlePrivacyPolicyPress}>
                 Privacy Policy
               </Text>
@@ -269,16 +274,11 @@ const styles = StyleSheet.create({
     borderRadius: 150, // Makes it circular
     position: "absolute",
   },
-  blurOverlay: {
-    width: 1000,
-    height: 300,
-    borderRadius: 150,
-    position: 'absolute',
-  },
+
   contentView: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
     zIndex: 1, // Ensures content is above gradient
   },
@@ -304,22 +304,22 @@ const styles = StyleSheet.create({
     fontSize: 21,
   },
   appleButtonContainer: {
-    position: 'relative',
+    position: "relative",
   },
   appleLoadingOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 17,
   },
   appleLoadingText: {
     fontSize: 21,
-    fontWeight: '500',
+    fontWeight: "500",
     color: colors.black,
   },
   disabledButton: {
@@ -347,12 +347,12 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
     lineHeight: 20,
   },
   linkText: {
-    color: 'white',
-    textDecorationLine: 'underline',
+    color: "white",
+    textDecorationLine: "underline",
   },
 });

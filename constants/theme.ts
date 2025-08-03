@@ -3,7 +3,7 @@ import { scale, verticalScale } from "@/utils/styling";
 export const colors = {
   primary: "#7d33fb",
   primaryLight: "#d9f99d",
-  primaryDark: "#6a9a1a",
+  primaryDark: "#1C1A40",
   text: "#fff",
   textLight: "#e5e5e5",
   textLighter: "#d4d4d4",

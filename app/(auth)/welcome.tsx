@@ -15,13 +15,10 @@ const Welcome = () => {
             <View style={styles.container}>
                 {/* login button and Image */}
                 <View>
-                    <TouchableOpacity onPress={() => router.push("/(auth)/login")} style={styles.loginButton}>
-                        <Typo fontWeight={"500"}>Sign In</Typo>
-                    </TouchableOpacity>
-
+                 
                     <Animated.Image
                         entering={FadeIn.duration(1000)}
-                        source={require("../../assets/images/welcome_2.jpg")}
+                        source={require("@/assets/images/mwonya_new_logo.png")}
                         style={styles.welcomeImage}
                         resizeMode="contain"
                     />
@@ -32,18 +29,18 @@ const Welcome = () => {
                 <View style={styles.footer}>
                     <Animated.View entering={FadeInDown.duration(1000).springify().damping(12)} style={{ alignItems: "center" }}>
                         <Typo size={30} fontWeight={"800"}>
-                            Always take control
+                            Discover it first on 
                         </Typo>
                         <Typo size={30} fontWeight={"800"}>
-                            of your finances
+                        Mwonya and Share
                         </Typo>
                     </Animated.View>
                     <Animated.View entering={FadeInDown.duration(1000).delay(100).springify().damping(12)} style={{ alignItems: "center", gap: 2 }}>
                         <Typo size={17} color={colors.textLight} >
-                            Finances must be arranged to set a better
+                            Ugandan music, podcasts and
                         </Typo>
                         <Typo size={17} color={colors.textLight}  >
-                            life style in future
+                            live shows all in one place
                         </Typo>
                     </Animated.View>
                     <Animated.View entering={FadeInDown.duration(1000).delay(200).springify().damping(12)} style={styles.buttonContainer}>
@@ -88,11 +85,6 @@ const styles = StyleSheet.create({
         paddingTop: verticalScale(30),
         paddingBottom: verticalScale(45),
         gap: spacingY._20,
-        shadowColor: "green",
-        shadowOffset: { width: 0, height: -10 },
-        elevation: 10,
-        shadowRadius: 25,
-        shadowOpacity: 0.15
     },
 
     buttonContainer: {

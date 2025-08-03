@@ -6,9 +6,9 @@ import { useAuth } from "@/contexts/authContext";
 import { FloatingPlayer } from "@/components/FloatingPlayer";
 
 export default function TabsLayout() {
-  // const { user } = useAuth();
-
-  // if (!user) return <Redirect href="/login" />;
+  const { user } = useAuth();
+  if (!user) return <Redirect href="/social-auth" />;
+  
   return (
     <>
       <Tabs
