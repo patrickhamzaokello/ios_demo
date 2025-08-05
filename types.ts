@@ -80,12 +80,17 @@ export type AuthContextType = {
   register: (
     email: string,
     password: string,
-    phone: string,
-    name: string,
     user_name: string
   ) => Promise<{ success: boolean; msg?: string }>;
   forgotPassword: (
     email: string
+  ) => Promise<{ success: boolean; msg?: string }>;
+  resendVerificationCode: (
+    email: string | null
+  ) => Promise<{ success: boolean; msg?: string }>;
+  verifyEmail: (
+    email: string,
+    code: string
   ) => Promise<{ success: boolean; msg?: string }>;
 };
 

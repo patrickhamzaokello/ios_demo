@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch("https://backend.aeacbio.com/auth/login/", {
+      const response = await fetch("https://mwonyaapi.mwonya.com/auth/login/", {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -117,8 +117,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const backend_url =
         provider === "google"
-          ? "https://backend.aeacbio.com/social_auth/google/"
-          : "https://backend.aeacbio.com/social_auth/apple/";
+          ? "https://mwonyaapi.mwonya.com/social_auth/google/"
+          : "https://mwonyaapi.mwonya.com/social_auth/apple/";
 
       // Make the backend request
       const backendResponse = await fetch(backend_url, {
@@ -177,16 +177,114 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const resendVerificationCode = async (user_email: string | null) => {
+    if (!user_email) {
+      return {
+        success: false,
+        msg: "Email is required to resend verification code.",
+      };
+    }
+    try {
+      const response = await fetch(
+        "https://mwonyaapi.mwonya.com/auth/resend-verification-code/",
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: user_email,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        //navigate to verify screen
+        router.push({
+          pathname: "/(auth)/verify_email",
+          params: { email: user_email },
+        });
+        let msg = data?.message;
+        return { success: true, msg };
+      } else {
+        let msg = data?.error || "Unable to resend Token";
+        if (
+          msg.includes("email-already-in-use") ||
+          msg.includes("already exists")
+        ) {
+          msg = "Verification failed, Try again later or contact support";
+        }
+        return { success: false, msg };
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        msg: error?.message || "Network error. Please try again.",
+      };
+    }
+  };
+
+  const verifyEmail = async (email: string, code: string) => {
+    if (!email || !code) {
+      return {
+        success: false,
+        msg: "Email and verification code are required.",
+      };
+    }
+
+    try {
+      const response = await fetch(
+        "https://mwonyaapi.mwonya.com/auth/verify-email/",
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            code,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        //navigate to login screen
+        router.push("/(auth)/login");
+        return { success: true };
+      } else {
+        let msg = data?.error || "Verification Failed failed";
+        if (
+          msg.includes("Invalid verification code") ||
+          msg.includes("verification code")
+        ) {
+          msg =
+            "Invalid verification code. Please try again. attempts remaining" +
+              data?.attempts_remaining || "";
+        }
+        return { success: false, msg };
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        msg: error?.message || "Network error. Please try again.",
+      };
+    }
+  };
+
   const register = async (
     user_email: string,
     user_password: string,
-    phone_number: string,
-    user_fullname: string,
     username: string
   ) => {
     try {
       const response = await fetch(
-        "https://backend.aeacbio.com/auth/register/",
+        "https://mwonyaapi.mwonya.com/auth/register/",
         {
           method: "POST",
           headers: {
@@ -196,8 +294,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           body: JSON.stringify({
             email: user_email,
             password: user_password,
-            phone_number,
-            full_name: user_fullname,
             username,
           }),
         }
@@ -206,21 +302,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const data = await response.json();
 
       if (response.ok) {
-        // Store tokens and user data after successful registration
-        const { tokens, user: userData } = data;
-
-        if (tokens?.access && tokens?.refresh) {
-          await SecureStore.setItemAsync("accessToken", tokens.access);
-          await SecureStore.setItemAsync("refreshToken", tokens.refresh);
-        }
-
-        if (userData) {
-          await SecureStore.setItemAsync("userData", JSON.stringify(userData));
-          setUser(userData);
-        }
-
-        router.replace("/(tabs)/(home)");
-        return { success: true };
+        router.push({
+          pathname: "/(auth)/verify_email",
+          params: { email: user_email },
+        });
+        let msg = data?.data?.message;
+        return { success: true, msg };
       } else {
         let msg = data?.message || "Registration failed";
         if (
@@ -242,7 +329,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const forgotPassword = async (email: string) => {
     try {
       const response = await fetch(
-        "https://backend.aeacbio.com/auth/forgot-password/",
+        "https://mwonyaapi.mwonya.com/auth/forgot-password/",
         {
           method: "POST",
           headers: {
@@ -281,7 +368,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return { success: false, msg: "No access token found" };
       }
 
-      const response = await fetch("https://backend.aeacbio.com/auth/user/", {
+      const response = await fetch("https://mwonyaapi.mwonya.com/auth/user/", {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -351,7 +438,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       const response = await fetch(
-        "https://backend.aeacbio.com/auth/refresh/",
+        "https://mwonyaapi.mwonya.com/auth/refresh/",
         {
           method: "POST",
           headers: {
@@ -391,6 +478,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     register,
     updateUserData,
     forgotPassword,
+    resendVerificationCode,
+    verifyEmail,
   };
 
   return (

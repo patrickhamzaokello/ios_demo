@@ -174,7 +174,7 @@ const SocialAuthScreen = () => {
 
             <Button
               loading={isLoading}
-              onPress={() => router.push("/(auth)/login")}
+              onPress={() => router.push("/(auth)/register")}
               style={styles.social_email_button}
             >
               <Image
