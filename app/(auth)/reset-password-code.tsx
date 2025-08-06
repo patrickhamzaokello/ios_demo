@@ -63,15 +63,16 @@ const EmailVerification = () => {
 
     setIsLoading(true);
     try {
-      const res = await verifyEmail(email as string, verificationCode);
+      router.replace("/(auth)/set-new-password")
+      // const res = await verifyEmail(email as string, verificationCode);
       
-      if (res.success) {
-        Alert.alert("Success", "Email verified successfully!", [
-          { text: "OK", onPress: () => router.replace("/(tabs)/(home)") }
-        ]);
-      } else {
-        Alert.alert("Verification Failed", res.msg || "Invalid verification code");
-      }
+      // if (res.success) {
+      //   Alert.alert("Success", "Email verified successfully!", [
+      //     { text: "OK", onPress: () => router.replace("/(tabs)/(home)") }
+      //   ]);
+      // } else {
+      //   Alert.alert("Verification Failed", res.msg || "Invalid verification code");
+      // }
     } catch (error) {
       Alert.alert("Verification Failed", "An error occurred. Please try again.");
     } finally {
@@ -132,7 +133,7 @@ const EmailVerification = () => {
               
               <View style={styles.textContainer}>
                 <Typo size={28} fontWeight={"800"} style={styles.title}>
-                  Verify Your Email
+                 Verify Password Reset Request
                 </Typo>
                 <Typo size={16} color={colors.text} style={styles.subtitle}>
                   We've sent a 6-digit verification code to

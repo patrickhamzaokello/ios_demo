@@ -82,6 +82,11 @@ export type AuthContextType = {
     password: string,
     user_name: string
   ) => Promise<{ success: boolean; msg?: string }>;
+  reset_password_complete: (
+    token: string,
+    uidb64: string,
+    new_password: string
+  ) => Promise<{ success: boolean; msg?: string }>;
   forgotPassword: (
     email: string
   ) => Promise<{ success: boolean; msg?: string }>;

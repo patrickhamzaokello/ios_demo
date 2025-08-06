@@ -36,6 +36,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const reset_password_complete = async (
+    user_token: string,
+    uidb64_code: string,
+    new_password: string
+  ) => {
+    try {
+      const response = await fetch(
+        "https://mwonyaapi.mwonya.com/auth//password-reset-complete/",
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            password: new_password,
+            uidb64: uidb64_code,
+            token: user_token,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Navigate to login screen after successful password reset
+        router.replace("/(auth)/login");
+        return { success: true };
+      } else {
+        let msg = data?.message || "Password reset failed";
+        if (msg.includes("invalid-code")) {
+          msg = "Invalid verification code";
+        }
+        return { success: false, msg };
+      }
+    } catch (error: any) {
+      return {
+        success: false,
+        msg: error?.message || "Network error. Please try again.",
+      };
+    }
+  };
+
   const login = async (email: string, password: string) => {
     try {
       const response = await fetch("https://mwonyaapi.mwonya.com/auth/login/", {
@@ -203,7 +246,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (response.ok) {
         //navigate to verify screen
-        router.push({
+        router.replace({
           pathname: "/(auth)/verify_email",
           params: { email: user_email },
         });
@@ -255,7 +298,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (response.ok) {
         //navigate to login screen
-        router.push("/(auth)/login");
+        router.replace("/(auth)/login");
         return { success: true };
       } else {
         let msg = data?.error || "Verification Failed failed";
@@ -302,7 +345,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const data = await response.json();
 
       if (response.ok) {
-        router.push({
+        router.replace({
           pathname: "/(auth)/verify_email",
           params: { email: user_email },
         });
@@ -480,6 +523,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     forgotPassword,
     resendVerificationCode,
     verifyEmail,
+    reset_password_complete
   };
 
   return (
