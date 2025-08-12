@@ -10,6 +10,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<UserType>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNewUser, setIsNewUser] = useState(false);
   const router = useRouter();
 
   // Check for existing authentication on app start
@@ -21,16 +22,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const accessToken = await SecureStore.getItemAsync("accessToken");
       const userData = await SecureStore.getItemAsync("userData");
-      if (accessToken) {
+
+      if (accessToken && userData) {
         const parsedUser = userData ? JSON.parse(userData) : null;
         setUser(parsedUser);
-        router.replace("/(tabs)/(home)");
-      } else {
-        router.replace("/(auth)/welcome");
       }
     } catch (error) {
       console.error("Error checking auth state:", error);
-      router.replace("/(auth)/welcome");
     } finally {
       setIsLoading(false);
     }
@@ -96,20 +94,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const data = await response.json();
 
       if (response.ok) {
-        // Store tokens and user data
-        const { tokens, user: userData } = data;
+        // Store tokens and user data from new API structure
+        const { tokens, email, username, user_id } = data;
 
         if (tokens?.access && tokens?.refresh) {
           await SecureStore.setItemAsync("accessToken", tokens.access);
           await SecureStore.setItemAsync("refreshToken", tokens.refresh);
         }
 
-        if (userData) {
-          await SecureStore.setItemAsync("userData", JSON.stringify(userData));
-          setUser(userData);
-        }
+        // Store individual user fields
+        if (email) await SecureStore.setItemAsync("email", email);
+        if (username) await SecureStore.setItemAsync("username", username);
+        if (user_id) await SecureStore.setItemAsync("user_id", user_id);
 
-        router.replace("/(tabs)/(home)");
+        // Create user object for context
+        const userData: UserType = {
+          user_id,
+          email,
+          username,
+          full_name: null,
+          phone_number: null,
+          image: null,
+        };
+
+        await SecureStore.setItemAsync("userData", JSON.stringify(userData));
+        setUser(userData);
+
+        // Check if this is a new user who needs onboarding
+        if (isNewUser) {
+          router.replace("/(auth)/onboarding");
+          setIsNewUser(false); // Reset after redirecting
+        } else {
+          router.replace("/(tabs)/(home)");
+        }
         return { success: true };
       } else {
         let msg = data?.message || "Login failed";
@@ -154,8 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Check if the user is already logged in
       const currentAccessToken = await SecureStore.getItemAsync("accessToken");
       if (currentAccessToken) {
-        router.replace("/(tabs)/(home)");
-        return { success: true, msg: "User already logged in." };
+        logout();
       }
 
       const backend_url =
@@ -181,35 +197,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // Store the tokens securely
         console.log("Backend Response:", backendData);
 
-        const { tokens, user: userData } = backendData;
+        // Store tokens and user data from new API structure
+        const { tokens, email, username, user_id } = backendData;
+
         if (tokens?.access && tokens?.refresh) {
           await SecureStore.setItemAsync("accessToken", tokens.access);
           await SecureStore.setItemAsync("refreshToken", tokens.refresh);
         }
 
-        // Store user data
-        if (userData) {
-          await SecureStore.setItemAsync("userData", JSON.stringify(userData));
-          setUser(userData);
-        } else {
-          // Fallback to individual fields if user object not provided
-          const fallbackUser = {
-            uid: backendData.uid || null,
-            email: backendData.email || null,
-            full_name: backendData.full_name || backendData.username || null,
-            phone_number: backendData.phone_number || null,
-            user_name: backendData.username || null,
-            image: backendData.image || null,
-          };
-          await SecureStore.setItemAsync(
-            "userData",
-            JSON.stringify(fallbackUser)
-          );
-          setUser(fallbackUser);
-        }
+        // Store individual user fields
+        if (email) await SecureStore.setItemAsync("email", email);
+        if (username) await SecureStore.setItemAsync("username", username);
+        if (user_id) await SecureStore.setItemAsync("user_id", user_id);
 
-        router.replace("/(tabs)/(home)");
-        return { success: true, msg: "Login Successful" };
+        // Create user object for context
+        const userData: UserType = {
+          user_id,
+          email,
+          username,
+          full_name: null,
+          phone_number: null,
+          image: null,
+        };
+
+        await SecureStore.setItemAsync("userData", JSON.stringify(userData));
+        setUser(userData);
+
+        // Check if this is a new user from social auth
+        if (isNewUser) {
+          router.replace("/(auth)/onboarding");
+          return { success: true, msg: "Login Successful", isNewUser: true };
+        } else {
+          router.replace("/(tabs)/(home)");
+          return { success: true, msg: "Login Successful", isNewUser: false };
+        }
       } else {
         const errorMsg = "An error occurred. Please try again.";
         return { success: false, msg: errorMsg };
@@ -297,8 +318,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const data = await response.json();
 
       if (response.ok) {
-        //navigate to login screen
-        router.replace("/(auth)/login");
+        // If this is a new user, they'll need onboarding after login
+        if (isNewUser) {
+          router.replace("/(auth)/login");
+        } else {
+          router.replace("/(auth)/login");
+        }
         return { success: true };
       } else {
         let msg = data?.error || "Verification Failed failed";
@@ -345,6 +370,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const data = await response.json();
 
       if (response.ok) {
+        // Mark as new user for onboarding
+        setIsNewUser(true);
         router.replace({
           pathname: "/(auth)/verify_email",
           params: { email: user_email },
@@ -424,11 +451,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (response.ok) {
         const userData: UserType = {
-          uid: data?.uid || data?.id,
+          user_id: data?.uid || data?.id,
           email: data?.email,
           full_name: data?.full_name || data?.user_fullname,
           phone_number: data?.phone_number,
-          user_name: data?.username || data?.user_name,
+          username: data?.username || data?.user_name,
           image: data?.image || data?.profile_image,
         };
 
@@ -457,6 +484,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       await SecureStore.deleteItemAsync("userData");
       await SecureStore.deleteItemAsync("email");
       await SecureStore.deleteItemAsync("username");
+      await SecureStore.deleteItemAsync("user_id");
+      await SecureStore.deleteItemAsync("hasCompletedOnboarding");
 
       // Clear user state
       setUser(null);
@@ -473,48 +502,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const refreshTokens = async () => {
-    try {
-      const refreshToken = await SecureStore.getItemAsync("refreshToken");
-      if (!refreshToken) {
-        throw new Error("No refresh token found");
-      }
-
-      const response = await fetch(
-        "https://mwonyaapi.mwonya.com/auth/refresh/",
-        {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            refresh: refreshToken,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        const { access } = data;
-        if (access) {
-          await SecureStore.setItemAsync("accessToken", access);
-          return { success: true, accessToken: access };
-        }
-      }
-
-      throw new Error("Failed to refresh token");
-    } catch (error) {
-      // If refresh fails, logout user
-      await logout();
-      return { success: false, msg: "Session expired. Please login again." };
-    }
-  };
-
   const contextValue: AuthContextType = {
     user,
     setUser,
+    isNewUser,
+    setIsNewUser,
     login,
     logout,
     login_with_google_apple,
@@ -523,7 +515,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     forgotPassword,
     resendVerificationCode,
     verifyEmail,
-    reset_password_complete
+    reset_password_complete,
   };
 
   return (

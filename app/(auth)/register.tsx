@@ -1,5 +1,6 @@
 import { Alert, Pressable, StyleSheet, Text, View, ScrollView, KeyboardAvoidingView, Platform, TextInput } from 'react-native'
 import React, { useState } from 'react'
+import { useFocusEffect } from '@react-navigation/native'
 import ScreenWrapper from '@/components/ScreenWrapper'
 import Typo from '@/components/Typo'
 import { colors, spacingX, spacingY } from '@/constants/theme'
@@ -26,6 +27,16 @@ const Register = () => {
   const router = useRouter();
   const { register: registerUser } = useAuth();
 
+  // Reset loading states when screen gains focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('Register screen focused - resetting loading states');
+      setIsGoogleLoading(false);
+      setIsAppleLoading(false);
+      setIsLoading(false);
+    }, [])
+  );
+
   const validatePassword = (password: string): boolean => {
     return password.length >= 8;
   };
@@ -47,7 +58,6 @@ const Register = () => {
       router.replace("/(auth)/social-auth");
     } catch (error) {
       Alert.alert("Google Sign Up Failed", "An error occurred. Please try again.");
-    } finally {
       setIsGoogleLoading(false);
     }
   };
@@ -58,7 +68,6 @@ const Register = () => {
       router.replace("/(auth)/social-auth");
     } catch (error) {
       Alert.alert("Apple Sign Up Failed", "An error occurred. Please try again.");
-    } finally {
       setIsAppleLoading(false);
     }
   };
@@ -97,7 +106,7 @@ const Register = () => {
       const res = await registerUser(email, password, username);
 
       if (res.success) {
-        router.push({
+        router.replace({
           pathname: "/(auth)/verify_email",
           params: { email }
         });
@@ -274,7 +283,7 @@ const Register = () => {
             {/* Footer */}
             <View style={styles.footer}>
               <Text style={styles.footerText}>Already have an account? </Text>
-              <Pressable onPress={() => router.navigate("/(auth)/login")}>
+              <Pressable onPress={() => router.replace("/(auth)/login")}>
                 <Text style={styles.footerLink}>Sign in</Text>
               </Pressable>
             </View>

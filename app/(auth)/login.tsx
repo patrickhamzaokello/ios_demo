@@ -16,6 +16,7 @@ import {
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Alert,
   Image,
@@ -42,6 +43,16 @@ const Login = () => {
 
   const { login: loginUser } = useAuth();
 
+  // Reset loading states when screen gains focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('Login screen focused - resetting loading states');
+      setIsGoogleLoading(false);
+      setIsAppleLoading(false);
+      setIsLoading(false);
+    }, [])
+  );
+
   const handleGoogleSignUp = async () => {
     setIsGoogleLoading(true);
     try {
@@ -51,7 +62,6 @@ const Login = () => {
         "Google Sign Up Failed",
         "An error occurred. Please try again."
       );
-    } finally {
       setIsGoogleLoading(false);
     }
   };
@@ -67,12 +77,12 @@ const Login = () => {
         "Apple Sign Up Failed",
         "An error occurred. Please try again."
       );
-    } finally {
       setIsAppleLoading(false);
     }
   };
 
   const handleSubmit = async () => {
+    console.log('Login submit pressed', { formData, isLoading });
     const { email, password } = formData;
 
     if (!email || !password) {
@@ -247,7 +257,7 @@ const Login = () => {
               </View>
 
               <Pressable
-                onPress={() => router.navigate("/(auth)/reset-password")}
+                onPress={() => router.push("/(auth)/reset-password")}
               >
                 <Typo
                   size={14}
@@ -268,7 +278,7 @@ const Login = () => {
             {/* footer */}
             <View style={styles.footer}>
               <Typo size={15}>Don't have an account?</Typo>
-              <Pressable onPress={() => router.navigate("/(auth)/register")}>
+              <Pressable onPress={() => router.replace("/(auth)/register")}>
                 <Typo
                   size={15}
                   fontWeight={"700"}

@@ -56,21 +56,23 @@ export type accountOptionType = {
 };
 
 export type UserType = {
-  uid?: string;
-  phone_number?: string | null;
+  user_id?: string;
   email?: string | null;
+  username?: string | null;
   full_name?: string | null;
-  user_name?: string | null;
+  phone_number?: string | null;
   image?: any;
 } | null;
 
 export type AuthContextType = {
   user: UserType;
   setUser: Function;
+  isNewUser: boolean;
+  setIsNewUser: Function;
   login_with_google_apple: (
     auth_token: string,
     provider: "google" | "apple"
-  ) => Promise<{ success: boolean; msg?: string }>;
+  ) => Promise<{ success: boolean; msg?: string; isNewUser?: boolean }>;
   updateUserData(userId: string): Promise<{ success: boolean; msg?: string }>;
   logout: () => Promise<{ success: boolean; msg?: string }>;
   login: (

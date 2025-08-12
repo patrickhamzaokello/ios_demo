@@ -138,7 +138,7 @@ const ResetPassword = () => {
             {/* footer */}
             <View style={styles.footer}>
               <Typo size={15}>Remembered your password?</Typo>
-              <Pressable onPress={() => router.navigate("/(auth)/login")}>
+              <Pressable onPress={() => router.push("/(auth)/login")}>
                 <Typo
                   size={15}
                   fontWeight={"700"}

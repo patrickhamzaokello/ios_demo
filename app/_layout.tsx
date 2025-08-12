@@ -94,6 +94,8 @@ const App = () => {
 const RootNavigation = () => {
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" options={{ animation: 'none' }} />
+      <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
       
       <Stack.Screen

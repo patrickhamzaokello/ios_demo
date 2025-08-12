@@ -19,8 +19,9 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 
-const PassowordResetNew = () => {
+const PasswordResetNew = () => {
   const [formData, setFormData] = useState({
     password: "",
     confirmPassword: "",
@@ -30,6 +31,7 @@ const PassowordResetNew = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const router = useRouter();
+  const { token, uidb64 } = useLocalSearchParams();
   const { reset_password_complete: resetUserPassword } = useAuth();
 
   const validatePassword = (password: string): boolean => {
@@ -64,14 +66,26 @@ const PassowordResetNew = () => {
       return;
     }
 
+    if (!token || !uidb64) {
+      Alert.alert("Error", "Missing reset token. Please try the reset process again.");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const res = await resetUserPassword(password, confirmPassword,confirmPassword);
+      const res = await resetUserPassword(token as string, uidb64 as string, password);
 
       if (res.success) {
-        router.replace({
-          pathname: "/(auth)/login",
-        });
+        Alert.alert(
+          "Password Reset Successful",
+          "Your password has been reset successfully. Please login with your new password.",
+          [
+            {
+              text: "OK",
+              onPress: () => router.replace("/(auth)/login"),
+            },
+          ]
+        );
       } else {
         Alert.alert("Password Reset Failed", res.msg);
       }
@@ -108,9 +122,7 @@ const PassowordResetNew = () => {
               <Typo size={15} color={colors.neutral400} style={styles.subtitle}>
                 You will have to login again after resetting your password.
               </Typo>
-            </View>
-
-            
+            </View>          
 
             {/* Form */}
             <View style={styles.form}>            
@@ -201,7 +213,7 @@ const PassowordResetNew = () => {
   );
 };
 
-export default PassowordResetNew;
+export default PasswordResetNew;
 
 const styles = StyleSheet.create({
   scrollContainer: {
